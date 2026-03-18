@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Visual Lab -- KI interaktiv verstehen</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,100;0,400;0,700;0,900;1,300;1,700&family=Fira+Code:wght@300;400;500&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #07080f;
+  --bg2:       #0c0e1a;
+  --surface:   #111420;
+  --border:    #1c2035;
+  --border2:   #252840;
+  --accent1:   #e8c547;   /* gold */
+  --accent2:   #e05252;   /* red */
+  --accent3:   #52b8e0;   /* blue */
+  --accent4:   #52e09a;   /* green */
+  --accent5:   #b852e0;   /* purple */
+  --text:      #d8ddf0;
+  --muted:     #4a5070;
+  --bright:    #f0f4ff;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Mulish’, sans-serif;
+font-weight: 300;
+overflow-x: hidden;
+}
+
+/* ── ANIMATED BACKGROUND ── */
+.bg-canvas {
+position: fixed; inset: 0;
+z-index: 0;
+pointer-events: none;
+}
+
+/* ── NOISE GRAIN ── */
+body::after {
+content: ‘’;
+position: fixed; inset: 0;
+background-image: url("data:image/svg+xml,%3Csvg xmlns=‘http://www.w3.org/2000/svg’ width=‘200’ height=‘200’%3E%3Cfilter id=‘n’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.85’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3CfeColorMatrix type=‘saturate’ values=‘0’/%3E%3C/filter%3E%3Crect width=‘200’ height=‘200’ filter=‘url(%23n)’ opacity=‘0.03’/%3E%3C/svg%3E");
+pointer-events: none; z-index: 1; opacity: 0.8;
+}
+
+/* ── LAYOUT ── */
+.container {
+max-width: 1100px;
+margin: 0 auto;
+padding: 0 32px;
+position: relative; z-index: 2;
+}
+
+/* ── HEADER / NAV ── */
+nav {
+position: fixed; top: 0; left: 0; right: 0;
+z-index: 100;
+padding: 16px 32px;
+display: flex; align-items: center; gap: 24px;
+background: rgba(7,8,15,0.85);
+border-bottom: 1px solid var(–border);
+backdrop-filter: blur(16px);
+transition: padding 0.3s;
+}
+.nav-logo {
+font-family: ‘Fira Code’, monospace;
+font-size: 13px; font-weight: 500;
+color: var(–bright);
+letter-spacing: 1px;
+text-decoration: none;
+display: flex; align-items: center; gap: 8px;
+}
+.nav-logo .dot {
+width: 8px; height: 8px; border-radius: 50%;
+background: var(–accent1);
+box-shadow: 0 0 8px var(–accent1);
+animation: blink 2s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.nav-links {
+display: flex; gap: 8px; margin-left: auto;
+}
+.nav-link {
+font-family: ‘Fira Code’, monospace;
+font-size: 10px; letter-spacing: 2px;
+text-transform: uppercase;
+color: var(–muted);
+text-decoration: none;
+padding: 5px 12px;
+border-radius: 2px;
+transition: color 0.2s;
+}
+.nav-link:hover { color: var(–text); }
+
+/* ── HERO ── */
+.hero {
+min-height: 100vh;
+display: flex; flex-direction: column;
+justify-content: center;
+padding: 120px 0 80px;
+position: relative;
+}
+
+.hero-eyebrow {
+font-family: ‘Fira Code’, monospace;
+font-size: 10px; letter-spacing: 4px;
+text-transform: uppercase;
+color: var(–accent1);
+margin-bottom: 24px;
+opacity: 0;
+animation: fadeUp 0.8s ease 0.2s forwards;
+}
+
+.hero-title {
+font-family: ‘Fraunces’, serif;
+font-size: clamp(52px, 8vw, 110px);
+font-weight: 900;
+line-height: 0.92;
+letter-spacing: -3px;
+color: var(–bright);
+margin-bottom: 32px;
+opacity: 0;
+animation: fadeUp 0.8s ease 0.4s forwards;
+}
+.hero-title .line2 {
+color: transparent;
+-webkit-text-stroke: 1.5px var(–border2);
+display: block;
+}
+.hero-title .accent-word {
+color: var(–accent1);
+position: relative;
+display: inline-block;
+}
+.hero-title .accent-word::after {
+content: ‘’;
+position: absolute;
+bottom: 4px; left: 0; right: 0;
+height: 3px;
+background: var(–accent1);
+opacity: 0.4;
+border-radius: 2px;
+}
+
+.hero-desc {
+font-family: ‘Mulish’, sans-serif;
+font-size: 17px; font-weight: 300;
+color: var(–muted);
+max-width: 520px;
+line-height: 1.7;
+margin-bottom: 48px;
+opacity: 0;
+animation: fadeUp 0.8s ease 0.6s forwards;
+}
+.hero-desc strong { color: var(–text); font-weight: 600; }
+
+.hero-cta {
+display: flex; gap: 12px; flex-wrap: wrap;
+opacity: 0;
+animation: fadeUp 0.8s ease 0.8s forwards;
+}
+.btn-primary {
+padding: 13px 28px;
+background: var(–accent1);
+color: #07080f;
+font-family: ‘Fira Code’, monospace;
+font-size: 11px; font-weight: 500;
+letter-spacing: 2px; text-transform: uppercase;
+text-decoration: none;
+border-radius: 3px;
+transition: all 0.2s;
+box-shadow: 0 0 24px rgba(232,197,71,0.25);
+}
+.btn-primary:hover {
+transform: translateY(-2px);
+box-shadow: 0 8px 32px rgba(232,197,71,0.35);
+}
+.btn-ghost {
+padding: 13px 28px;
+border: 1px solid var(–border2);
+color: var(–muted);
+font-family: ‘Fira Code’, monospace;
+font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+text-decoration: none;
+border-radius: 3px;
+transition: all 0.2s;
+}
+.btn-ghost:hover { border-color: var(–text); color: var(–text); }
+
+/* Stats row */
+.hero-stats {
+display: flex; gap: 40px;
+margin-top: 72px;
+padding-top: 40px;
+border-top: 1px solid var(–border);
+opacity: 0;
+animation: fadeUp 0.8s ease 1s forwards;
+}
+.stat { }
+.stat-num {
+font-family: ‘Fraunces’, serif;
+font-size: 36px; font-weight: 700;
+color: var(–bright);
+line-height: 1;
+}
+.stat-label {
+font-family: ‘Fira Code’, monospace;
+font-size: 9px; letter-spacing: 2px;
+text-transform: uppercase;
+color: var(–muted);
+margin-top: 6px;
+}
+
+/* ── SECTION ── */
+.section {
+padding: 100px 0;
+}
+.section-label {
+font-family: ‘Fira Code’, monospace;
+font-size: 9px; letter-spacing: 4px;
+text-transform: uppercase;
+color: var(–muted);
+margin-bottom: 16px;
+}
+.section-title {
+font-family: ‘Fraunces’, serif;
+font-size: clamp(32px, 4vw, 52px);
+font-weight: 700;
+color: var(–bright);
+line-height: 1.1;
+letter-spacing: -1.5px;
+margin-bottom: 16px;
+}
+.section-sub {
+font-size: 15px; color: var(–muted);
+max-width: 480px; line-height: 1.7;
+margin-bottom: 56px;
+}
+
+/* ── CARDS GRID ── */
+.cards {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 16px;
+}
+
+.card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 36px;
+text-decoration: none;
+color: inherit;
+display: flex; flex-direction: column;
+gap: 16px;
+position: relative;
+overflow: hidden;
+transition: all 0.3s ease;
+cursor: pointer;
+}
+.card::before {
+content: ‘’;
+position: absolute; inset: 0;
+background: radial-gradient(circle at 80% 20%, var(–card-color, transparent) 0%, transparent 60%);
+opacity: 0;
+transition: opacity 0.4s;
+}
+.card:hover { border-color: var(–card-color); transform: translateY(-4px); }
+.card:hover::before { opacity: 0.07; }
+
+.card-num {
+font-family: ‘Fira Code’, monospace;
+font-size: 10px; letter-spacing: 3px;
+color: var(–card-color);
+text-transform: uppercase;
+}
+.card-icon {
+font-size: 36px;
+line-height: 1;
+}
+.card-title {
+font-family: ‘Fraunces’, serif;
+font-size: 22px; font-weight: 700;
+color: var(–bright);
+letter-spacing: -0.5px;
+line-height: 1.2;
+}
+.card-desc {
+font-size: 13px; color: var(–muted);
+line-height: 1.65;
+flex: 1;
+}
+.card-tags {
+display: flex; flex-wrap: wrap; gap: 6px;
+margin-top: 4px;
+}
+.tag {
+font-family: ‘Fira Code’, monospace;
+font-size: 9px; letter-spacing: 1px;
+padding: 3px 8px;
+border-radius: 2px;
+border: 1px solid;
+opacity: 0.7;
+}
+.card-arrow {
+font-size: 20px;
+color: var(–card-color);
+opacity: 0;
+transform: translateX(-8px);
+transition: all 0.2s;
+align-self: flex-end;
+}
+.card:hover .card-arrow { opacity: 1; transform: translateX(0); }
+
+/* Full-width card */
+.card.featured {
+grid-column: 1 / -1;
+flex-direction: row;
+align-items: center;
+gap: 48px;
+padding: 40px 48px;
+}
+.card.featured .card-body { flex: 1; }
+.card.featured .card-visual {
+width: 160px; height: 120px;
+border-radius: 6px;
+background: var(–bg2);
+border: 1px solid var(–border2);
+display: flex; align-items: center; justify-content: center;
+font-size: 56px;
+flex-shrink: 0;
+position: relative;
+overflow: hidden;
+}
+.card.featured .card-visual::after {
+content: ‘’;
+position: absolute; inset: 0;
+background: radial-gradient(circle, var(–card-color) 0%, transparent 70%);
+opacity: 0.12;
+}
+
+/* ── LEARNING PATH ── */
+.path {
+display: flex; flex-direction: column;
+gap: 0;
+position: relative;
+}
+.path::before {
+content: ‘’;
+position: absolute;
+left: 23px; top: 40px; bottom: 40px;
+width: 1px;
+background: linear-gradient(to bottom, var(–border), var(–border2), var(–border));
+}
+.path-step {
+display: flex; gap: 28px;
+padding: 28px 0;
+align-items: flex-start;
+position: relative;
+}
+.path-num {
+width: 46px; height: 46px;
+border-radius: 50%;
+border: 1px solid var(–border2);
+background: var(–surface);
+display: flex; align-items: center; justify-content: center;
+font-family: ‘Fira Code’, monospace;
+font-size: 12px; font-weight: 500;
+flex-shrink: 0;
+position: relative; z-index: 1;
+transition: all 0.2s;
+}
+.path-step:hover .path-num {
+border-color: var(–step-color);
+color: var(–step-color);
+box-shadow: 0 0 16px rgba(var(–step-rgb), 0.3);
+}
+.path-content { padding-top: 10px; }
+.path-title {
+font-family: ‘Fraunces’, serif;
+font-size: 18px; font-weight: 700;
+color: var(–bright);
+margin-bottom: 6px;
+}
+.path-desc { font-size: 13px; color: var(–muted); line-height: 1.6; }
+.path-link {
+display: inline-block;
+margin-top: 10px;
+font-family: ‘Fira Code’, monospace;
+font-size: 10px; letter-spacing: 1px;
+color: var(–step-color);
+text-decoration: none;
+opacity: 0.7;
+transition: opacity 0.2s;
+}
+.path-link:hover { opacity: 1; }
+
+/* ── QUOTE SECTION ── */
+.quote-section {
+padding: 80px 0;
+border-top: 1px solid var(–border);
+border-bottom: 1px solid var(–border);
+}
+.quote {
+font-family: ‘Fraunces’, serif;
+font-size: clamp(22px, 3vw, 36px);
+font-weight: 400;
+font-style: italic;
+color: var(–text);
+line-height: 1.4;
+max-width: 780px;
+margin: 0 auto;
+text-align: center;
+}
+.quote-author {
+font-family: ‘Fira Code’, monospace;
+font-size: 10px; letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–muted);
+text-align: center;
+margin-top: 24px;
+}
+
+/* ── FOOTER ── */
+footer {
+padding: 48px 32px;
+border-top: 1px solid var(–border);
+display: flex; align-items: center; gap: 24px;
+position: relative; z-index: 2;
+}
+.footer-logo {
+font-family: ‘Fira Code’, monospace;
+font-size: 12px; color: var(–muted);
+}
+.footer-right {
+margin-left: auto;
+font-family: ‘Fira Code’, monospace;
+font-size: 9px; letter-spacing: 2px;
+color: var(–muted);
+}
+.footer-links {
+display: flex; gap: 20px;
+}
+.footer-links a {
+font-family: ‘Fira Code’, monospace;
+font-size: 10px; color: var(–muted);
+text-decoration: none;
+transition: color 0.2s;
+}
+.footer-links a:hover { color: var(–text); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(24px); }
+to   { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+opacity: 0;
+transform: translateY(32px);
+transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+opacity: 1;
+transform: translateY(0);
+}
+
+/* ── FLOATING NODES (decorative) ── */
+.nodes-bg {
+position: absolute;
+right: -60px; top: 50%;
+transform: translateY(-50%);
+width: 500px; height: 500px;
+pointer-events: none;
+opacity: 0.35;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+.cards { grid-template-columns: 1fr; }
+.card.featured { flex-direction: column; }
+.card.featured .card-visual { width: 100%; }
+.hero-stats { gap: 24px; flex-wrap: wrap; }
+nav { padding: 12px 20px; }
+.container { padding: 0 20px; }
+}
+</style>
+
+</head>
+<body>
+
+<!-- Animated canvas background -->
+
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+
+<!-- NAV -->
+
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="dot"></div>
+    neural-visual-lab
+  </a>
+  <div class="nav-links">
+    <a href="#tools" class="nav-link">Tools</a>
+    <a href="#path" class="nav-link">Lernpfad</a>
+    <a href="https://github.com" class="nav-link">GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+
+<section class="hero">
+  <div class="container">
+
+```
+<!-- Decorative neural net SVG -->
+<svg class="nodes-bg" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Lines -->
+  <line x1="80" y1="120" x2="240" y2="160" stroke="#1c2035" stroke-width="1.5"/>
+  <line x1="80" y1="200" x2="240" y2="160" stroke="#1c2035" stroke-width="1.5"/>
+  <line x1="80" y1="280" x2="240" y2="160" stroke="#252840" stroke-width="1"/>
+  <line x1="80" y1="120" x2="240" y2="250" stroke="#1c2035" stroke-width="1.5"/>
+  <line x1="80" y1="200" x2="240" y2="250" stroke="#e8c547" stroke-width="1" opacity="0.4"/>
+  <line x1="80" y1="280" x2="240" y2="250" stroke="#1c2035" stroke-width="1.5"/>
+  <line x1="80" y1="120" x2="240" y2="340" stroke="#252840" stroke-width="1"/>
+  <line x1="80" y1="200" x2="240" y2="340" stroke="#1c2035" stroke-width="1.5"/>
+  <line x1="80" y1="280" x2="240" y2="340" stroke="#1c2035" stroke-width="1.5"/>
+  <line x1="240" y1="160" x2="400" y2="250" stroke="#e05252" stroke-width="1.5" opacity="0.5"/>
+  <line x1="240" y1="250" x2="400" y2="250" stroke="#e8c547" stroke-width="2" opacity="0.6"/>
+  <line x1="240" y1="340" x2="400" y2="250" stroke="#52b8e0" stroke-width="1.5" opacity="0.4"/>
+  <!-- Input nodes -->
+  <circle cx="80" cy="120" r="14" fill="#111420" stroke="#252840" stroke-width="1.5"/>
+  <circle cx="80" cy="200" r="14" fill="#111420" stroke="#e8c547" stroke-width="1.5"/>
+  <circle cx="80" cy="280" r="14" fill="#111420" stroke="#252840" stroke-width="1.5"/>
+  <!-- Hidden nodes -->
+  <circle cx="240" cy="160" r="16" fill="#111420" stroke="#e05252" stroke-width="1.5"/>
+  <circle cx="240" cy="250" r="18" fill="#1a1020" stroke="#e8c547" stroke-width="2"/>
+  <circle cx="240" cy="340" r="16" fill="#111420" stroke="#52b8e0" stroke-width="1.5"/>
+  <!-- Output node -->
+  <circle cx="400" cy="250" r="22" fill="#1a1610" stroke="#e8c547" stroke-width="2"/>
+  <circle cx="400" cy="250" r="30" fill="none" stroke="#e8c547" stroke-width="0.5" opacity="0.3"/>
+  <!-- Glow -->
+  <circle cx="240" cy="250" r="26" fill="none" stroke="#e8c547" stroke-width="0.5" opacity="0.2"/>
+</svg>
+
+<div class="hero-eyebrow">🧠 Open Source · Bildung · Interaktiv</div>
+
+<h1 class="hero-title">
+  Neural<br>
+  <span class="line2">Visual</span>
+  <span class="accent-word">Lab</span>
+</h1>
+
+<p class="hero-desc">
+  Neuronale Netze, Backpropagation und Transformer --
+  <strong>interaktiv erklärt</strong>. Direkt im Browser,
+  ohne Installation. Für Einsteiger, Lehrende und alle,
+  die KI wirklich verstehen wollen.
+</p>
+
+<div class="hero-cta">
+  <a href="#tools" class="btn-primary">→ Tools öffnen</a>
+  <a href="https://github.com" class="btn-ghost">GitHub ↗</a>
+</div>
+
+<div class="hero-stats">
+  <div class="stat">
+    <div class="stat-num">4</div>
+    <div class="stat-label">Interaktive Tools</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">0</div>
+    <div class="stat-label">Dependencies</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">∞</div>
+    <div class="stat-label">Aha-Momente</div>
+  </div>
+</div>
+```
+
+  </div>
+</section>
+
+<!-- TOOLS -->
+
+<section class="section" id="tools">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">// Visualisierungen</div>
+      <h2 class="section-title">Vier Werkzeuge.<br>Ein Ziel.</h2>
+      <p class="section-sub">Jede Visualisierung erklärt ein Kernkonzept -- von den Grundlagen bis zum modernen Transformer.</p>
+    </div>
+
+```
+<div class="cards reveal">
+
+  <!-- Card 1: Rotkäppchen -->
+  <a href="04-stories/rotkaeppchen-nn.html" class="card featured"
+     style="--card-color: #e05252;">
+    <div class="card-visual">🔴</div>
+    <div class="card-body">
+      <div class="card-num">// 00 · Einstieg</div>
+      <div class="card-title">Rotkäppchen & das neuronale Netz</div>
+      <div class="card-desc">
+        Ein neuronales Netz lernt, den Wolf zu erkennen. Sechs Szenen, sechs Eingaben,
+        vier versteckte Muster. Der intuitivste Einstieg in neuronale Netze -- komplett
+        ohne Formeln.
+      </div>
+      <div class="card-tags">
+        <span class="tag" style="color:#e05252;border-color:#e0525244">Intuition</span>
+        <span class="tag" style="color:#e05252;border-color:#e0525244">Kein Vorwissen</span>
+        <span class="tag" style="color:#e05252;border-color:#e0525244">Für alle</span>
+      </div>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <!-- Card 2: Forward Pass -->
+  <a href="01-forward-pass/neural-net.html" class="card"
+     style="--card-color: #52b8e0;">
+    <div class="card-num">// 01 · Mechanik</div>
+    <div class="card-icon">⚡</div>
+    <div class="card-title">Forward Pass</div>
+    <div class="card-desc">
+      3-Layer-Netz mit live-editierbaren Gewichten und Biases. Verändere
+      Werte und sieh sofort, wie der Output reagiert. Verstehe ReLU und Sigmoid.
+    </div>
+    <div class="card-tags">
+      <span class="tag" style="color:#52b8e0;border-color:#52b8e044">Weights & Biases</span>
+      <span class="tag" style="color:#52b8e0;border-color:#52b8e044">Aktivierungen</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <!-- Card 3: Backprop -->
+  <a href="02-backpropagation/backprop.html" class="card"
+     style="--card-color: #e8c547;">
+    <div class="card-num">// 02 · Lernen</div>
+    <div class="card-icon">📉</div>
+    <div class="card-title">Backpropagation</div>
+    <div class="card-desc">
+      Trainiere ein Netz live auf XOR, AND oder OR. Beobachte Loss-Kurve,
+      Gradienten und Gewichts-Updates in Echtzeit. Spiele mit Lernrate und Momentum.
+    </div>
+    <div class="card-tags">
+      <span class="tag" style="color:#e8c547;border-color:#e8c54744">Gradient Descent</span>
+      <span class="tag" style="color:#e8c547;border-color:#e8c54744">Loss-Kurve</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <!-- Card 4: Transformer -->
+  <a href="03-transformer/transformer.html" class="card"
+     style="--card-color: #b852e0;">
+    <div class="card-num">// 03 · Modern</div>
+    <div class="card-icon">🔮</div>
+    <div class="card-title">Transformer & Attention</div>
+    <div class="card-desc">
+      „Attention Is All You Need" -- visualisiert. Self-Attention, Multi-Head,
+      Attention-Heatmap und der vollständige Transformer-Block. Klicke Tokens an.
+    </div>
+    <div class="card-tags">
+      <span class="tag" style="color:#b852e0;border-color:#b852e044">Q · K · V</span>
+      <span class="tag" style="color:#b852e0;border-color:#b852e044">Multi-Head</span>
+      <span class="tag" style="color:#b852e0;border-color:#b852e044">Heatmap</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+</div>
+```
+
+  </div>
+</section>
+
+<!-- LEARNING PATH -->
+
+<section class="section" id="path" style="background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">// Lernpfad</div>
+      <h2 class="section-title">Von Null zu<br>Transformer.</h2>
+      <p class="section-sub">Empfohlene Reihenfolge für den tiefsten Lerneffekt.</p>
+    </div>
+
+```
+<div class="path reveal">
+
+  <div class="path-step" style="--step-color: #e05252; --step-rgb: 224,82,82;">
+    <div class="path-num" style="color: #e05252;">01</div>
+    <div class="path-content">
+      <div class="path-title">Intuition aufbauen</div>
+      <div class="path-desc">
+        Starte mit Rotkäppchen. Kein Code, keine Formeln --
+        nur das Gefühl dafür, was ein neuronales Netz eigentlich tut.
+        Ein Netz erkennt Muster, keine Regeln.
+      </div>
+      <a href="04-stories/rotkaeppchen-nn.html" class="path-link">→ Rotkäppchen öffnen</a>
+    </div>
+  </div>
+
+  <div class="path-step" style="--step-color: #52b8e0; --step-rgb: 82,184,224;">
+    <div class="path-num" style="color: #52b8e0;">02</div>
+    <div class="path-content">
+      <div class="path-title">Mechanik verstehen</div>
+      <div class="path-desc">
+        Schiebe Gewichte und Biases, beobachte den Output.
+        Lerne: Was ist ein Neuron? Was ist ein Layer?
+        Was macht ReLU? Wie fließt Information durch ein Netz?
+      </div>
+      <a href="01-forward-pass/neural-net.html" class="path-link">→ Forward Pass öffnen</a>
+    </div>
+  </div>
+
+  <div class="path-step" style="--step-color: #e8c547; --step-rgb: 232,197,71;">
+    <div class="path-num" style="color: #e8c547;">03</div>
+    <div class="path-content">
+      <div class="path-title">Lernen beobachten</div>
+      <div class="path-desc">
+        Drücke „Trainieren" und sieh zu, wie ein Netz selbst
+        lernt. Loss fällt, Gradienten schrumpfen, Gewichte
+        konvergieren. Spiele mit der Lernrate -- zu groß ist
+        genauso schlimm wie zu klein.
+      </div>
+      <a href="02-backpropagation/backprop.html" class="path-link">→ Backpropagation öffnen</a>
+    </div>
+  </div>
+
+  <div class="path-step" style="--step-color: #b852e0; --step-rgb: 184,82,224;">
+    <div class="path-num" style="color: #b852e0;">04</div>
+    <div class="path-content">
+      <div class="path-title">Moderne KI entschlüsseln</div>
+      <div class="path-desc">
+        Klicke ein Token an und sieh, worauf es achtet.
+        Verstehe warum ChatGPT, Claude und Gemini so gut
+        funktionieren -- alles basiert auf diesem einen Mechanismus:
+        Attention.
+      </div>
+      <a href="03-transformer/transformer.html" class="path-link">→ Transformer öffnen</a>
+    </div>
+  </div>
+
+</div>
+```
+
+  </div>
+</section>
+
+<!-- QUOTE -->
+
+<section class="quote-section">
+  <div class="container">
+    <blockquote class="quote reveal">
+      „Jede ausreichend fortgeschrittene Technologie ist von Magie nicht zu unterscheiden --
+      bis man versteht, wie sie funktioniert."
+    </blockquote>
+    <div class="quote-author reveal">-- Nach Arthur C. Clarke</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+  <div class="footer-logo">🧠 neural-visual-lab</div>
+  <div class="footer-links">
+    <a href="https://github.com">GitHub</a>
+    <a href="README.md">README</a>
+  </div>
+  <div class="footer-right">MIT License · Bildung für alle</div>
+</footer>
+
+<script>
+// ── Animated background ──
+const bgCanvas = document.getElementById('bgCanvas');
+const bgCtx = bgCanvas.getContext('2d');
+let bgW, bgH;
+
+function resizeBg() {
+  bgW = bgCanvas.width = window.innerWidth;
+  bgH = bgCanvas.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+// Floating particles
+const particles = Array.from({length: 60}, () => ({
+  x: Math.random() * window.innerWidth,
+  y: Math.random() * window.innerHeight,
+  r: Math.random() * 1.5 + 0.3,
+  vx: (Math.random() - 0.5) * 0.3,
+  vy: (Math.random() - 0.5) * 0.3,
+  alpha: Math.random() * 0.4 + 0.05,
+  color: ['#e8c547','#e05252','#52b8e0','#b852e0','#52e09a'][Math.floor(Math.random()*5)]
+}));
+
+// Connections
+function drawBg() {
+  bgCtx.clearRect(0,0,bgW,bgH);
+
+  // Update particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0) p.x = bgW;
+    if (p.x > bgW) p.x = 0;
+    if (p.y < 0) p.y = bgH;
+    if (p.y > bgH) p.y = 0;
+  });
+
+  // Draw connections
+  particles.forEach((a, i) => {
+    particles.slice(i+1).forEach(b => {
+      const dx = a.x-b.x, dy = a.y-b.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if (dist < 120) {
+        bgCtx.beginPath();
+        bgCtx.moveTo(a.x, a.y);
+        bgCtx.lineTo(b.x, b.y);
+        bgCtx.strokeStyle = `rgba(28,32,53,${0.8*(1-dist/120)})`;
+        bgCtx.lineWidth = 0.5;
+        bgCtx.stroke();
+      }
+    });
+  });
+
+  // Draw particles
+  particles.forEach(p => {
+    bgCtx.beginPath();
+    bgCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    bgCtx.fillStyle = p.color + Math.floor(p.alpha*255).toString(16).padStart(2,'0');
+    bgCtx.fill();
+  });
+
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ── Scroll reveal ──
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 80);
+    }
+  });
+}, { threshold: 0.12 });
+reveals.forEach(el => observer.observe(el));
+
+// ── Smooth scroll for nav links ──
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({behavior:'smooth'}); }
+  });
+});
+</script>
+
+</body>
+</html>
