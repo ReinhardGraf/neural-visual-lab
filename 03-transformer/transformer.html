@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -8,20 +7,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:       #03050f;
-  --bg2:      #070b1a;
-  --panel:    #0c1123;
-  --border:   #1a2340;
-  --glow:     #00d4ff;
-  --glow2:    #ff6b35;
-  --glow3:    #7c4dff;
-  --q:        #ff6b6b;
-  --k:        #ffd93d;
-  --v:        #6bcb77;
-  --out:      #00d4ff;
-  --text:     #c8d8f0;
-  --muted:    #3a4a6a;
-  --bright:   #ffffff;
+  --bg:       #fdf8f2;
+  --bg2:      #f0eaf8;
+  --panel:    #ffffff;
+  --border:   #ddd0ee;
+  --border2:  #c0a8e0;
+  --glow:     #4a2cad;
+  --glow2:    #c07a10;
+  --glow3:    #6c3fd4;
+  --q:        #c0392b;
+  --k:        #c07a10;
+  --v:        #27855a;
+  --out:      #2478a8;
+  --text:     #1e1428;
+  --muted:    #8070a0;
+  --bright:   #0e0820;
+  --shadow:   rgba(60,30,100,0.10);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -32,202 +33,168 @@ body{
   overflow:hidden;
 }
 
-/* Starfield */
+/* Subtle lavender paper texture */
 body::before{
-content:’’;
-position:fixed;inset:0;
-background:
-radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 50%),
-radial-gradient(ellipse at 80% 20%, rgba(124,77,255,0.05) 0%, transparent 40%),
-radial-gradient(ellipse at 60% 80%, rgba(255,107,53,0.04) 0%, transparent 40%);
-pointer-events:none;z-index:0;
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse at 15% 40%, rgba(108,63,212,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 20%, rgba(74,44,173,0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 90%, rgba(192,122,16,0.03) 0%, transparent 40%);
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;
 }
 
 /* ── HEADER ── */
 header{
-display:flex;align-items:center;gap:16px;
-padding:14px 24px;
-background:rgba(7,11,26,0.95);
-border-bottom:1px solid var(–border);
-position:relative;z-index:10;
-backdrop-filter:blur(12px);
+  display:flex;align-items:center;gap:16px;
+  padding:14px 24px;
+  background:rgba(253,248,242,0.97);
+  border-bottom:1px solid var(--border);
+  position:relative;z-index:10;
+  box-shadow:0 1px 8px var(--shadow);
 }
 header h1{
-font-family:‘Orbitron’,monospace;
-font-size:16px;font-weight:900;
-letter-spacing:3px;
-background:linear-gradient(90deg,var(–glow),var(–glow3));
--webkit-background-clip:text;-webkit-text-fill-color:transparent;
-white-space:nowrap;
+  font-family:'Orbitron',monospace;
+  font-size:16px;font-weight:900;
+  letter-spacing:3px;
+  background:linear-gradient(90deg,var(--glow),var(--glow3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  white-space:nowrap;
 }
 .hdr-sub{
-font-family:‘Share Tech Mono’,monospace;
-font-size:9px;letter-spacing:3px;
-color:var(–muted);text-transform:uppercase;
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;letter-spacing:3px;
+  color:var(--muted);text-transform:uppercase;
 }
-.tab-row{
-display:flex;gap:4px;margin-left:auto;
-}
+.tab-row{display:flex;gap:4px;margin-left:auto;}
 .tab{
-padding:5px 14px;
-font-family:‘Share Tech Mono’,monospace;
-font-size:9px;letter-spacing:2px;text-transform:uppercase;
-border:1px solid var(–border);
-border-radius:2px;cursor:pointer;
-color:var(–muted);background:transparent;
-transition:all .15s;
+  padding:5px 14px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  border:1px solid var(--border);border-radius:2px;cursor:pointer;
+  color:var(--muted);background:transparent;transition:all .15s;
 }
-.tab:hover{color:var(–text);border-color:var(–muted);}
+.tab:hover{color:var(--text);border-color:var(--border2);}
 .tab.active{
-color:var(–glow);border-color:var(–glow);
-background:rgba(0,212,255,0.08);
-box-shadow:0 0 10px rgba(0,212,255,0.2);
+  color:var(--glow);border-color:var(--glow);
+  background:rgba(74,44,173,0.08);
+  box-shadow:0 0 8px rgba(74,44,173,0.15);
 }
 
 /* ── MAIN LAYOUT ── */
 .app{
-display:grid;
-grid-template-columns:1fr 300px;
-height:calc(100vh - 52px);
-position:relative;z-index:1;
+  display:grid;
+  grid-template-columns:1fr 300px;
+  height:calc(100vh - 52px);
+  position:relative;z-index:1;
 }
 
 /* ── CENTER STAGE ── */
 .stage{
-position:relative;
-overflow:hidden;
-border-right:1px solid var(–border);
+  position:relative;overflow:hidden;
+  border-right:1px solid var(--border);
 }
 #mainCanvas{display:block;width:100%;height:100%;}
 
-/* Sentence input bar */
+/* Token bar */
 .sentence-bar{
-position:absolute;top:14px;left:50%;transform:translateX(-50%);
-display:flex;gap:6px;align-items:center;
-background:rgba(12,17,35,0.95);
-border:1px solid var(–border);
-border-radius:4px;padding:6px 10px;
-backdrop-filter:blur(8px);
-z-index:5;
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;align-items:center;
+  background:rgba(255,255,255,0.96);
+  border:1px solid var(--border);
+  border-radius:6px;padding:6px 10px;
+  backdrop-filter:blur(8px);z-index:5;
+  box-shadow:0 4px 16px var(--shadow);
 }
 .token-chip{
-padding:5px 11px;
-font-family:‘Share Tech Mono’,monospace;
-font-size:11px;
-border-radius:3px;
-border:1px solid;
-cursor:pointer;
-transition:all .2s;
-white-space:nowrap;
-user-select:none;
+  padding:5px 11px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  border-radius:3px;border:1px solid;cursor:pointer;
+  transition:all .2s;white-space:nowrap;user-select:none;
 }
 .token-chip:hover{transform:translateY(-2px);}
-.token-chip.selected{
-box-shadow:0 0 14px currentColor;
-transform:translateY(-2px);
-}
+.token-chip.selected{box-shadow:0 0 12px currentColor;transform:translateY(-2px);}
 
 .input-hint{
-position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
-font-family:‘Share Tech Mono’,monospace;
-font-size:9px;letter-spacing:2px;color:var(–muted);
-white-space:nowrap;
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;letter-spacing:2px;color:var(--muted);white-space:nowrap;
 }
 
 /* ── RIGHT PANEL ── */
 .panel{
-background:var(–bg2);
-display:flex;flex-direction:column;
-overflow:hidden;
+  background:var(--bg2);
+  display:flex;flex-direction:column;overflow:hidden;
 }
 .p-section{
-padding:14px 16px;
-border-bottom:1px solid var(–border);
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
 }
+.p-section:nth-child(even){background:var(--bg2);}
 .p-title{
-font-family:‘Share Tech Mono’,monospace;
-font-size:8px;letter-spacing:3px;
-text-transform:uppercase;color:var(–muted);
-margin-bottom:10px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:8px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px;
 }
 
-/* QKV rows */
+/* QKV */
 .qkv-grid{display:flex;flex-direction:column;gap:6px;}
-.qkv-row{
-display:grid;grid-template-columns:22px 1fr 40px;
-align-items:center;gap:8px;
-}
+.qkv-row{display:grid;grid-template-columns:22px 1fr 40px;align-items:center;gap:8px;}
 .qkv-badge{
-font-family:‘Share Tech Mono’,monospace;
-font-size:9px;font-weight:700;
-padding:2px 5px;border-radius:2px;
-text-align:center;
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;font-weight:700;padding:2px 5px;border-radius:2px;text-align:center;
 }
-.qkv-bar-bg{height:8px;background:var(–border);border-radius:1px;overflow:hidden;}
-.qkv-bar-fill{height:100%;border-radius:1px;transition:width .25s;}
-.qkv-num{
-font-family:‘Share Tech Mono’,monospace;
-font-size:9px;text-align:right;
-}
+.qkv-bar-bg{height:8px;background:var(--border);border-radius:2px;overflow:hidden;}
+.qkv-bar-fill{height:100%;border-radius:2px;transition:width .25s;}
+.qkv-num{font-family:'Share Tech Mono',monospace;font-size:9px;text-align:right;}
 
-/* Attention heatmap */
 #heatCanvas{display:block;width:100%;aspect-ratio:1;}
 
-/* Score table */
-.score-table{width:100%;border-collapse:collapse;}
-.score-table td,.score-table th{
-font-family:‘Share Tech Mono’,monospace;
-font-size:9px;padding:4px 6px;
-border:1px solid var(–border);
-text-align:center;
-}
-.score-table th{color:var(–muted);background:var(–panel);}
-
 /* Step explanation */
-.step-explain{
-flex:1;overflow-y:auto;
-padding:14px 16px;
-}
+.step-explain{flex:1;overflow-y:auto;padding:14px 16px;background:var(--bg2);}
 .formula-box{
-background:var(–panel);
-border:1px solid var(–border);
-border-radius:4px;
-padding:12px;
-margin-bottom:10px;
-font-family:‘Share Tech Mono’,monospace;
-font-size:10px;
-line-height:1.9;
+  background:var(--panel);
+  border:1px solid var(--border);border-radius:5px;
+  padding:12px;margin-bottom:10px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;line-height:1.9;
+  color:var(--text);
+  box-shadow:0 1px 4px var(--shadow);
 }
-.formula-box .hi{color:var(–glow);}
-.formula-box .q{color:var(–q);}
-.formula-box .k{color:var(–k);}
-.formula-box .v{color:var(–v);}
-.formula-box .out{color:var(–out);}
-.formula-box .dim{color:var(–muted);}
+.formula-box .hi {color:var(--glow);font-weight:700;}
+.formula-box .q  {color:var(--q);font-weight:600;}
+.formula-box .k  {color:var(--k);font-weight:600;}
+.formula-box .v  {color:var(--v);font-weight:600;}
+.formula-box .out{color:var(--out);font-weight:600;}
+.formula-box .dim{color:var(--muted);}
 
-/* Head selector */
+/* Head pills */
 .head-pills{display:flex;gap:4px;flex-wrap:wrap;}
 .head-pill{
-padding:3px 10px;
-font-family:‘Share Tech Mono’,monospace;font-size:9px;
-border:1px solid var(–border);border-radius:20px;
-cursor:pointer;color:var(–muted);background:transparent;
-transition:all .15s;
+  padding:3px 10px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  border:1px solid var(--border);border-radius:20px;
+  cursor:pointer;color:var(--muted);background:var(--panel);transition:all .15s;
 }
 .head-pill.active{
-border-color:var(–glow3);color:var(–glow3);
-background:rgba(124,77,255,0.12);
+  border-color:var(--glow3);color:var(--glow3);
+  background:rgba(108,63,212,0.08);
 }
 
-/* Scrollbar */
 .step-explain::-webkit-scrollbar{width:3px;}
-.step-explain::-webkit-scrollbar-track{background:var(–bg2);}
-.step-explain::-webkit-scrollbar-thumb{background:var(–border);}
+.step-explain::-webkit-scrollbar-track{background:var(--bg2);}
+.step-explain::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
-/* Animated attention lines on canvas */
+/* Token colors — kept vivid but slightly muted for light bg */
 @keyframes dash{to{stroke-dashoffset:-20;}}
 </style>
-
 </head>
 <body>
 
@@ -245,11 +212,8 @@ background:rgba(124,77,255,0.12);
   <div class="stage">
     <canvas id="mainCanvas"></canvas>
 
-```
-<div class="sentence-bar" id="tokenBar"></div>
-<div class="input-hint">← Klicke ein Token um dessen Attention zu sehen →</div>
-```
-
+    <div class="sentence-bar" id="tokenBar"></div>
+    <div class="input-hint">← Klicke ein Token um dessen Attention zu sehen →</div>
   </div>
 
   <div class="panel">
@@ -258,20 +222,17 @@ background:rgba(124,77,255,0.12);
       <div class="qkv-grid" id="qkvDisplay"></div>
     </div>
 
-```
-<div class="p-section">
-  <div class="p-title">Attention-Heatmap</div>
-  <canvas id="heatCanvas"></canvas>
-</div>
+    <div class="p-section">
+      <div class="p-title">Attention-Heatmap</div>
+      <canvas id="heatCanvas"></canvas>
+    </div>
 
-<div class="p-section">
-  <div class="p-title">Attention Head</div>
-  <div class="head-pills" id="headPills"></div>
-</div>
+    <div class="p-section">
+      <div class="p-title">Attention Head</div>
+      <div class="head-pills" id="headPills"></div>
+    </div>
 
-<div class="step-explain" id="stepExplain"></div>
-```
-
+    <div class="step-explain" id="stepExplain"></div>
   </div>
 </div>
 
@@ -286,13 +247,13 @@ const SENTENCES = {
 };
 
 const TOKEN_COLORS = [
-  {bg:'rgba(255,107,107,0.15)',border:'#ff6b6b',text:'#ff6b6b'},
-  {bg:'rgba(255,217,61,0.15)', border:'#ffd93d',text:'#ffd93d'},
-  {bg:'rgba(107,203,119,0.15)',border:'#6bcb77',text:'#6bcb77'},
-  {bg:'rgba(0,212,255,0.15)',  border:'#00d4ff',text:'#00d4ff'},
-  {bg:'rgba(124,77,255,0.15)', border:'#7c4dff',text:'#7c4dff'},
-  {bg:'rgba(255,107,53,0.15)', border:'#ff6b35',text:'#ff6b35'},
-  {bg:'rgba(200,180,255,0.15)',border:'#c8b4ff',text:'#c8b4ff'},
+  {bg:'rgba(192,57,43,0.10)', border:'#c0392b',text:'#c0392b'},
+  {bg:'rgba(192,122,16,0.10)',border:'#c07a10',text:'#c07a10'},
+  {bg:'rgba(39,133,90,0.10)', border:'#27855a',text:'#27855a'},
+  {bg:'rgba(36,120,168,0.10)',border:'#2478a8',text:'#2478a8'},
+  {bg:'rgba(108,63,212,0.10)',border:'#6c3fd4',text:'#6c3fd4'},
+  {bg:'rgba(192,100,16,0.10)',border:'#c06410',text:'#c06410'},
+  {bg:'rgba(140,60,180,0.10)',border:'#8c3cb4',text:'#8c3cb4'},
 ];
 
 const N_HEADS = 4;
@@ -392,7 +353,14 @@ function draw() {
   const dpr = devicePixelRatio;
   const W = canvas.width/dpr, H = canvas.height/dpr;
   ctx.save(); ctx.scale(dpr,dpr);
-  ctx.clearRect(0,0,W,H);
+  // Warm lavender paper background
+  const bgG = ctx.createLinearGradient(0,0,W,H);
+  bgG.addColorStop(0,'#fdf8f2'); bgG.addColorStop(1,'#f0eaf8');
+  ctx.fillStyle=bgG; ctx.fillRect(0,0,W,H);
+  // Subtle grid
+  ctx.strokeStyle='rgba(180,160,210,0.18)'; ctx.lineWidth=0.5;
+  for(let gx=0;gx<W;gx+=32){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(let gy=0;gy<H;gy+=32){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
 
   if (currentView==='attention') drawAttentionView(W,H);
   else if (currentView==='multihead') drawMultiHeadView(W,H);
@@ -418,7 +386,7 @@ function drawAttentionView(W, H) {
 
   // Background label
   ctx.font = '700 9px Share Tech Mono';
-  ctx.fillStyle = 'rgba(58,74,106,0.6)';
+  ctx.fillStyle = 'rgba(100,80,140,0.6)';
   ctx.textAlign = 'left';
   ctx.fillText('INPUT TOKENS', pad, yTop-50);
   ctx.fillText('OUTPUT (nach Attention)', pad, yBot+55);
@@ -567,7 +535,7 @@ function drawMultiHeadView(W, H) {
 
     // Head label
     ctx.font = `${isActive?'700':'400'} 8px Share Tech Mono`;
-    ctx.fillStyle = isActive ? headColors[h] : 'rgba(58,74,106,0.8)';
+    ctx.fillStyle = isActive ? headColors[h] : 'rgba(120,100,160,0.6)';
     ctx.textAlign = 'left';
     ctx.fillText(`HEAD ${h+1}`, 8, yBase+3);
 
@@ -624,7 +592,7 @@ function drawMultiHeadView(W, H) {
   // Concat + Linear arrow at bottom
   const concatY = H - 22;
   ctx.font = '700 9px Share Tech Mono';
-  ctx.fillStyle = '#00d4ff';
+  ctx.fillStyle = 'rgba(74,44,173,0.7)';
   ctx.textAlign = 'center';
   ctx.fillText('↑  Concat + Linear Projection  →  Output', W/2, concatY);
 }
@@ -740,7 +708,7 @@ function drawFullBlockView(W, H) {
 
   // N× label
   ctx.font='700 10px Share Tech Mono';
-  ctx.fillStyle='rgba(58,74,106,0.8)';
+  ctx.fillStyle='rgba(100,80,140,0.6)';
   ctx.textAlign='right';
   ctx.fillText('×N Schichten', cx+bw/2+50, H*0.38);
 }
@@ -779,7 +747,7 @@ function drawHeatmap() {
   const off = cellSize;
 
   hctx.clearRect(0,0,size,size);
-  hctx.fillStyle = '#070b1a';
+  hctx.fillStyle = '#f5eef8';
   hctx.fillRect(0,0,size,size);
 
   // Labels
@@ -942,6 +910,5 @@ buildHeadPills();
 updateAll();
 animate();
 </script>
-
 </body>
 </html>
