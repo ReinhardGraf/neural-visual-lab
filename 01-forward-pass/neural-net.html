@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -8,17 +7,17 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f;
-    --panel: #11111a;
-    --border: #1e1e2e;
-    --accent: #7c6af7;
-    --accent2: #f76a6a;
-    --accent3: #6af7c0;
-    --text: #e0e0f0;
-    --muted: #555577;
-    --pos: #6af7c0;
-    --neg: #f76a6a;
-    --zero: #444466;
+    --bg:      #fdf8f2;
+    --bg2:     #f5ede0;
+    --panel:   #ffffff;
+    --border:  #e0d0bc;
+    --border2: #c8b89e;
+    --accent:  #6c4fd4;
+    --pos:     #27855a;
+    --neg:     #c0392b;
+    --text:    #2a1e14;
+    --muted:   #8a7060;
+    --shadow:  rgba(80,50,20,0.10);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -28,191 +27,161 @@
     min-height: 100vh;
     overflow-x: hidden;
   }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(180,160,130,0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180,160,130,0.18) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none; z-index: 0;
+  }
 
-/* Grid noise texture */
-body::before {
-content: ‘’;
-position: fixed; inset: 0;
-background-image:
-linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
-linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
-background-size: 32px 32px;
-pointer-events: none; z-index: 0;
-}
+  header {
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(253,248,242,0.97);
+    box-shadow: 0 1px 8px var(--shadow);
+    position: relative; z-index: 2;
+    display: flex; align-items: baseline; gap: 16px;
+  }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  header span {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 2px;
+  }
 
-header {
-padding: 24px 32px 16px;
-border-bottom: 1px solid var(–border);
-position: relative; z-index: 1;
-display: flex; align-items: baseline; gap: 16px;
-}
-header h1 {
-font-family: ‘Syne’, sans-serif;
-font-size: 22px; font-weight: 800;
-letter-spacing: -0.5px;
-color: var(–text);
-}
-header span {
-font-size: 11px; color: var(–muted);
-text-transform: uppercase; letter-spacing: 2px;
-}
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    grid-template-rows: auto auto;
+    gap: 0;
+    height: calc(100vh - 61px);
+    position: relative; z-index: 1;
+  }
 
-.layout {
-display: grid;
-grid-template-columns: 1fr 320px;
-grid-template-rows: auto auto;
-gap: 0;
-height: calc(100vh - 65px);
-position: relative; z-index: 1;
-}
+  .canvas-wrap {
+    grid-row: 1 / 3;
+    position: relative;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  canvas { width: 100%; height: 100%; display: block; }
 
-/* ── CANVAS ── */
-.canvas-wrap {
-grid-row: 1 / 3;
-position: relative;
-border-right: 1px solid var(–border);
-overflow: hidden;
-}
-canvas {
-width: 100%; height: 100%;
-display: block;
-}
+  .controls {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    overflow-y: auto;
+  }
+  .section-label {
+    font-size: 9px; letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .weight-grid { display: flex; flex-direction: column; gap: 8px; }
+  .weight-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center; gap: 8px;
+  }
+  .weight-label { font-size: 10px; color: var(--muted); }
+  .weight-label b { color: var(--text); }
+  .weight-val { font-size: 11px; font-weight: 600; min-width: 42px; text-align: right; }
 
-/* ── CONTROLS ── */
-.controls {
-padding: 20px;
-border-bottom: 1px solid var(–border);
-overflow-y: auto;
-}
-.section-label {
-font-size: 9px; letter-spacing: 3px;
-text-transform: uppercase;
-color: var(–muted);
-margin-bottom: 12px;
-}
-.weight-grid {
-display: flex; flex-direction: column; gap: 8px;
-}
-.weight-item {
-display: grid;
-grid-template-columns: 1fr auto;
-align-items: center; gap: 8px;
-}
-.weight-label {
-font-size: 10px; color: var(–muted);
-}
-.weight-label b { color: var(–text); }
-.weight-val {
-font-size: 11px; font-weight: 600;
-min-width: 42px; text-align: right;
-}
-input[type=range] {
--webkit-appearance: none;
-width: 100%; height: 3px;
-background: var(–border);
-border-radius: 2px; outline: none;
-margin: 3px 0;
-grid-column: 1 / 3;
-}
-input[type=range]::-webkit-slider-thumb {
--webkit-appearance: none;
-width: 14px; height: 14px;
-border-radius: 50%;
-background: var(–accent);
-cursor: pointer;
-box-shadow: 0 0 6px rgba(124,106,247,0.6);
-transition: box-shadow 0.2s;
-}
-input[type=range]:hover::-webkit-slider-thumb {
-box-shadow: 0 0 12px rgba(124,106,247,0.9);
-}
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%; height: 3px;
+    background: var(--border);
+    border-radius: 2px; outline: none;
+    margin: 3px 0; grid-column: 1 / 3;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(108,79,212,0.4);
+    transition: box-shadow 0.2s;
+  }
+  input[type=range]:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 10px rgba(108,79,212,0.7);
+  }
 
-.divider { height: 1px; background: var(–border); margin: 14px 0; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
 
-/* ── OUTPUT PANEL ── */
-.output-panel {
-padding: 20px;
-display: flex; flex-direction: column; gap: 12px;
-}
-.activation-eq {
-background: var(–panel);
-border: 1px solid var(–border);
-border-radius: 6px;
-padding: 12px;
-font-size: 10px; line-height: 1.8;
-color: var(–muted);
-}
-.activation-eq .step { color: var(–text); }
-.activation-eq .highlight { color: var(–accent); font-weight: 600; }
-.activation-eq .pos { color: var(–pos); }
-.activation-eq .neg { color: var(–neg); }
+  .output-panel {
+    padding: 20px;
+    background: var(--bg2);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .activation-eq {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 10px; line-height: 1.8;
+    color: var(--muted);
+    box-shadow: 0 1px 4px var(--shadow);
+  }
+  .activation-eq .step { color: var(--text); font-weight: 600; }
+  .activation-eq .highlight { color: var(--accent); font-weight: 700; }
+  .activation-eq .pos { color: var(--pos); font-weight: 600; }
+  .activation-eq .neg { color: var(--neg); font-weight: 600; }
 
-.output-bars {
-display: flex; flex-direction: column; gap: 6px;
-}
-.output-row {
-display: grid;
-grid-template-columns: 60px 1fr 48px;
-align-items: center; gap: 8px;
-}
-.output-row label { font-size: 10px; color: var(–muted); }
-.bar-bg {
-height: 12px; background: var(–border);
-border-radius: 2px; overflow: hidden;
-}
-.bar-fill {
-height: 100%;
-border-radius: 2px;
-transition: width 0.25s ease, background 0.25s;
-}
-.output-row .val {
-font-size: 11px; font-weight: 600; text-align: right;
-}
+  .output-bars { display: flex; flex-direction: column; gap: 6px; }
+  .output-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 48px;
+    align-items: center; gap: 8px;
+  }
+  .output-row label { font-size: 10px; color: var(--muted); }
+  .bar-bg {
+    height: 12px; background: var(--border);
+    border-radius: 2px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 2px; transition: width 0.25s ease, background 0.25s; }
+  .output-row .val { font-size: 11px; font-weight: 600; text-align: right; }
 
-.reset-btn {
-margin-top: 4px;
-background: none;
-border: 1px solid var(–border);
-color: var(–muted);
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 10px;
-letter-spacing: 2px;
-text-transform: uppercase;
-padding: 7px 14px;
-border-radius: 4px;
-cursor: pointer;
-transition: border-color 0.2s, color 0.2s;
-width: 100%;
-}
-.reset-btn:hover {
-border-color: var(–accent);
-color: var(–accent);
-}
+  .reset-btn {
+    margin-top: 4px;
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 7px 14px; border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    width: 100%;
+  }
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-.tooltip {
-position: fixed;
-background: rgba(10,10,20,0.95);
-border: 1px solid var(–accent);
-border-radius: 5px;
-padding: 6px 10px;
-font-size: 10px; color: var(–text);
-pointer-events: none;
-z-index: 100;
-opacity: 0;
-transition: opacity 0.15s;
-}
-.tooltip.visible { opacity: 1; }
+  .tooltip {
+    position: fixed;
+    background: rgba(253,248,242,0.97);
+    border: 1px solid var(--accent);
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 10px; color: var(--text);
+    pointer-events: none; z-index: 100;
+    opacity: 0; transition: opacity 0.15s;
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+  .tooltip.visible { opacity: 1; }
 
-/* Pulse animation for active nodes */
-@keyframes pulse {
-0%,100% { opacity:1; } 50% { opacity:0.5; }
-}
-.pulse { animation: pulse 1.2s ease infinite; }
-
-/* highlight selected weight */
-.weight-item.selected .weight-label b { color: var(–accent); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .pulse { animation: pulse 1.2s ease infinite; }
+  .weight-item.selected .weight-label b { color: var(--accent); }
 </style>
-
 </head>
 <body>
 
@@ -335,13 +304,13 @@ function nodePositions() {
 }
 
 function weightColor(w) {
-  if (Math.abs(w) < 0.05) return `rgba(68,68,102,0.4)`;
+  if (Math.abs(w) < 0.05) return `rgba(200,184,158,0.5)`;
   if (w > 0) {
-    const a = Math.min(0.9, 0.2 + Math.abs(w) * 0.7);
-    return `rgba(106,247,192,${a})`;
+    const a = Math.min(0.85, 0.2 + Math.abs(w) * 0.7);
+    return `rgba(39,133,90,${a})`;
   } else {
-    const a = Math.min(0.9, 0.2 + Math.abs(w) * 0.7);
-    return `rgba(247,106,106,${a})`;
+    const a = Math.min(0.85, 0.2 + Math.abs(w) * 0.7);
+    return `rgba(192,57,43,${a})`;
   }
 }
 
@@ -356,6 +325,15 @@ function draw() {
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
+  // Warm paper background
+  const bgGrad = ctx.createLinearGradient(0,0,W,H);
+  bgGrad.addColorStop(0,'#fdf8f2'); bgGrad.addColorStop(1,'#f5ede0');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='rgba(180,160,130,0.22)'; ctx.lineWidth=0.5;
+  for(let gx=0;gx<W;gx+=32){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(let gy=0;gy<H;gy+=32){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+
   // ── Draw connections ──
   for (let l = 0; l < net.w.length; l++) {
     for (let j = 0; j < net.w[l].length; j++) {
@@ -369,32 +347,25 @@ function draw() {
           selectedWeight.l===l && selectedWeight.j===j && selectedWeight.i===i;
 
         const lineW = Math.max(0.5, Math.abs(w) * 5);
-        const color = weightColor(w);
 
         ctx.beginPath();
-        ctx.strokeStyle = isHov || isSel
-          ? `rgba(124,106,247,${isHov?0.95:0.8})`
-          : color;
         ctx.lineWidth = isHov || isSel ? lineW + 2 : lineW;
         ctx.globalAlpha = 1;
 
-        // Flowing signal animation
         const grad = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
         if (isHov || isSel) {
-          grad.addColorStop(0, 'rgba(124,106,247,0.3)');
-          grad.addColorStop(0.5, 'rgba(124,106,247,0.9)');
-          grad.addColorStop(1, 'rgba(124,106,247,0.3)');
-          ctx.strokeStyle = grad;
+          grad.addColorStop(0, 'rgba(108,79,212,0.3)');
+          grad.addColorStop(0.5, 'rgba(108,79,212,0.85)');
+          grad.addColorStop(1, 'rgba(108,79,212,0.3)');
         } else {
-          const baseColor = w > 0 ? '106,247,192' : '247,106,106';
-          const a0 = Math.min(0.6, 0.1 + Math.abs(w) * 0.5);
-          const a1 = Math.min(0.9, 0.2 + Math.abs(w) * 0.7);
+          const baseColor = w > 0 ? '39,133,90' : '192,57,43';
+          const a0 = Math.min(0.5, 0.08 + Math.abs(w) * 0.4);
+          const a1 = Math.min(0.8, 0.15 + Math.abs(w) * 0.65);
           grad.addColorStop(0, `rgba(${baseColor},${a0})`);
           grad.addColorStop(0.5, `rgba(${baseColor},${a1})`);
           grad.addColorStop(1, `rgba(${baseColor},${a0})`);
-          ctx.strokeStyle = grad;
         }
-
+        ctx.strokeStyle = grad;
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
         ctx.stroke();
@@ -409,7 +380,7 @@ function draw() {
   for (let l = 0; l < STRUCTURE.length; l++) {
     // Layer label
     const midY = pos[l].reduce((s, p) => s + p.y, 0) / pos[l].length;
-    ctx.fillStyle = 'rgba(85,85,119,0.8)';
+    ctx.fillStyle = '#8a7060';
     ctx.font = '9px JetBrains Mono';
     ctx.textAlign = 'center';
     ctx.fillText(layerLabels[l].toUpperCase(), pos[l][0].x, midY - (STRUCTURE[l] * 35) / 2 - 18);
@@ -418,46 +389,38 @@ function draw() {
       const {x, y} = pos[l][i];
       const act = layers[l].a[i];
 
-      // Glow
-      const glowR = nodeR * 1.8;
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, glowR);
-      const alpha = 0.05 + act * 0.2;
-      glow.addColorStop(0, `rgba(124,106,247,${alpha})`);
-      glow.addColorStop(1, 'rgba(124,106,247,0)');
+      // Soft shadow
       ctx.beginPath();
-      ctx.arc(x, y, glowR, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
+      ctx.arc(x+2, y+2, nodeR, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(80,50,20,0.08)'; ctx.fill();
 
-      // Node circle
+      // Node circle — warm tones, activation-driven
       ctx.beginPath();
       ctx.arc(x, y, nodeR, 0, Math.PI * 2);
       const nodeGrad = ctx.createRadialGradient(x - 4, y - 4, 2, x, y, nodeR);
-      const brightness = Math.floor(act * 180);
-      nodeGrad.addColorStop(0, `rgb(${40+brightness/3},${35+brightness/3},${60+brightness/2})`);
-      nodeGrad.addColorStop(1, `rgb(${15+brightness/4},${12+brightness/4},${25+brightness/4})`);
-      ctx.fillStyle = nodeGrad;
-      ctx.fill();
-      ctx.strokeStyle = `rgba(124,106,247,${0.3 + act * 0.5})`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      const hi = Math.floor(act * 100);
+      nodeGrad.addColorStop(0, `rgb(${255-hi/4},${248-hi/3},${235-hi/2})`);
+      nodeGrad.addColorStop(1, `rgb(${240-hi/3},${228-hi/2},${210-hi})`);
+      ctx.fillStyle = nodeGrad; ctx.fill();
+      ctx.strokeStyle = `rgba(108,79,212,${0.2 + act * 0.6})`;
+      ctx.lineWidth = 1.5; ctx.stroke();
 
       // Activation value
-      ctx.fillStyle = `rgba(220,220,240,${0.5 + act * 0.5})`;
+      ctx.fillStyle = act > 0.4 ? '#2a1e14' : '#8a7060';
       ctx.font = `bold 10px JetBrains Mono`;
       ctx.textAlign = 'center';
       ctx.fillText(act.toFixed(2), x, y + 3.5);
 
-      // Node label (xᵢ, hⱼ, oₖ)
+      // Node label
       const subscripts = [['x₁','x₂','x₃'],['h₁','h₂','h₃','h₄'],['o₁','o₂']];
-      ctx.fillStyle = 'rgba(100,100,140,0.9)';
+      ctx.fillStyle = '#8a7060';
       ctx.font = '9px JetBrains Mono';
       ctx.fillText(subscripts[l][i], x, y + nodeR + 13);
 
-      // Bias label for hidden + output
+      // Bias label
       if (l > 0) {
         const bVal = net.b[l-1][i];
-        ctx.fillStyle = bVal >= 0 ? 'rgba(106,247,192,0.6)' : 'rgba(247,106,106,0.6)';
+        ctx.fillStyle = bVal >= 0 ? 'rgba(39,133,90,0.7)' : 'rgba(192,57,43,0.7)';
         ctx.font = '8px JetBrains Mono';
         ctx.fillText(`b:${bVal.toFixed(1)}`, x, y - nodeR - 6);
       }
@@ -633,7 +596,7 @@ canvas.addEventListener('mousemove', e => {
     tooltip.className = 'tooltip visible';
     tooltip.style.left = (e.clientX + 12) + 'px';
     tooltip.style.top = (e.clientY - 8) + 'px';
-    tooltip.innerHTML = `${fromNames[found.l][found.i]} → ${toNames[found.l][found.j]}<br><b style="color:${w>=0?'#6af7c0':'#f76a6a'}">${w.toFixed(3)}</b>`;
+    tooltip.innerHTML = `${fromNames[found.l][found.i]} → ${toNames[found.l][found.j]}<br><b style="color:${w>=0?'#27855a':'#c0392b'}">${w.toFixed(3)}</b>`;
     canvas.style.cursor = 'pointer';
     if (!hoveredWeight || hoveredWeight.l!==found.l || hoveredWeight.j!==found.j || hoveredWeight.i!==found.i) {
       hoveredWeight = found;
@@ -670,6 +633,5 @@ resizeCanvas();
 buildSliders();
 draw();
 </script>
-
 </body>
 </html>
