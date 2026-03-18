@@ -1,26 +1,27 @@
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rotkäppchen -- Neuronales Netz</title>
+<title>Rotkäppchen — Neuronales Netz</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:       #1a0a08;
-  --bg2:      #220e0a;
-  --panel:    #2a1209;
-  --border:   #4a2015;
-  --red:      #e8382a;
-  --gold:     #f0a830;
-  --green:    #4caf72;
-  --blue:     #5ab4d4;
-  --purple:   #9b6fd4;
-  --wolf:     #8a9aaa;
-  --text:     #f0e8d8;
-  --muted:    #7a5a4a;
-  --bright:   #fff8f0;
+  --bg:       #fdf8f2;
+  --bg2:      #f5ede0;
+  --panel:    #ffffff;
+  --border:   #e0d0bc;
+  --border2:  #c8b89e;
+  --red:      #c0392b;
+  --gold:     #c07a10;
+  --green:    #27855a;
+  --blue:     #2478a8;
+  --purple:   #7c4dbd;
+  --wolf:     #607080;
+  --text:     #2a1e14;
+  --muted:    #8a7060;
+  --bright:   #1a1008;
+  --shadow:   rgba(80,50,20,0.10);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -31,231 +32,254 @@ body{
   overflow:hidden;
 }
 
-/* Forest texture */
+/* Warm paper texture */
 body::before{
-content:’’;
-position:fixed;inset:0;
-background:
-radial-gradient(ellipse at 15% 30%, rgba(232,56,42,0.06) 0%, transparent 40%),
-radial-gradient(ellipse at 85% 70%, rgba(76,175,114,0.05) 0%, transparent 40%),
-radial-gradient(ellipse at 50% 100%, rgba(138,154,170,0.04) 0%, transparent 30%);
-pointer-events:none;z-index:0;
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse at 10% 20%, rgba(232,56,42,0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 80%, rgba(76,175,114,0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 50%, rgba(240,168,48,0.03) 0%, transparent 60%);
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;
 }
 
 /* ── HEADER ── */
 header{
-display:flex;align-items:center;gap:14px;
-padding:12px 24px;
-background:rgba(34,14,10,0.97);
-border-bottom:1px solid var(–border);
-position:relative;z-index:10;
+  display:flex;align-items:center;gap:14px;
+  padding:12px 24px;
+  background:rgba(253,248,242,0.97);
+  border-bottom:1px solid var(--border);
+  position:relative;z-index:10;
+  box-shadow:0 1px 8px var(--shadow);
 }
 header h1{
-font-family:‘Playfair Display’,serif;
-font-size:20px;font-weight:900;
-color:var(–red);
-letter-spacing:1px;
+  font-family:'Playfair Display',serif;
+  font-size:20px;font-weight:900;
+  color:var(--red);
+  letter-spacing:1px;
 }
 header .sub{
-font-family:‘Space Mono’,monospace;
-font-size:8px;letter-spacing:2px;
-color:var(–muted);text-transform:uppercase;
+  font-family:'Space Mono',monospace;
+  font-size:8px;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;
 }
 .scene-indicator{
-margin-left:auto;
-font-family:‘Space Mono’,monospace;
-font-size:9px;letter-spacing:1px;
-color:var(–gold);
-background:rgba(240,168,48,0.1);
-border:1px solid rgba(240,168,48,0.3);
-padding:4px 12px;border-radius:2px;
+  margin-left:auto;
+  font-family:'Space Mono',monospace;
+  font-size:9px;letter-spacing:1px;
+  color:var(--gold);
+  background:rgba(192,122,16,0.08);
+  border:1px solid rgba(192,122,16,0.25);
+  padding:4px 12px;border-radius:2px;
 }
 
 /* ── LAYOUT ── */
 .app{
-display:grid;
-grid-template-columns:1fr 320px;
-height:calc(100vh - 50px);
-position:relative;z-index:1;
+  display:grid;
+  grid-template-columns:1fr 320px;
+  height:calc(100vh - 50px);
+  position:relative;z-index:1;
 }
 
 /* ── STAGE ── */
 .stage{
-position:relative;overflow:hidden;
-border-right:1px solid var(–border);
+  position:relative;overflow:hidden;
+  border-right:1px solid var(--border);
 }
 #netCanvas{display:block;width:100%;height:100%;}
 
 /* Story overlay top */
 .story-box{
-position:absolute;top:16px;left:50%;transform:translateX(-50%);
-max-width:520px;width:90%;
-background:rgba(26,10,8,0.93);
-border:1px solid var(–border);
-border-radius:4px;
-padding:12px 18px;
-backdrop-filter:blur(8px);
-z-index:5;
-text-align:center;
+  position:absolute;top:16px;left:50%;transform:translateX(-50%);
+  max-width:520px;width:90%;
+  background:rgba(255,255,255,0.96);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:12px 18px;
+  backdrop-filter:blur(8px);
+  z-index:5;
+  text-align:center;
+  box-shadow:0 4px 20px var(--shadow);
 }
 .story-scene{
-font-family:‘Playfair Display’,serif;
-font-size:11px;letter-spacing:3px;
-text-transform:uppercase;
-color:var(–muted);
-margin-bottom:4px;
+  font-family:'Playfair Display',serif;
+  font-size:11px;letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:4px;
 }
 .story-text{
-font-family:‘Crimson Pro’,serif;
-font-size:15px;
-color:var(–text);
-font-style:italic;
-line-height:1.5;
+  font-family:'Crimson Pro',serif;
+  font-size:15px;
+  color:var(--text);
+  font-style:italic;
+  line-height:1.5;
 }
-.story-text .highlight{color:var(–red);font-style:normal;font-weight:600;}
+.story-text .highlight{color:var(--red);font-style:normal;font-weight:600;}
 
 /* Scene navigation */
 .scene-nav{
-position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
-display:flex;gap:8px;align-items:center;
-z-index:5;
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;align-items:center;
+  z-index:5;
 }
 .nav-btn{
-padding:7px 18px;
-font-family:‘Space Mono’,monospace;
-font-size:9px;letter-spacing:2px;
-text-transform:uppercase;
-border-radius:3px;
-cursor:pointer;
-transition:all .15s;
-border:1px solid var(–border);
-background:rgba(26,10,8,0.9);
-color:var(–muted);
+  padding:7px 18px;
+  font-family:'Space Mono',monospace;
+  font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;
+  border-radius:3px;
+  cursor:pointer;
+  transition:all .15s;
+  border:1px solid var(--border2);
+  background:rgba(255,255,255,0.92);
+  color:var(--muted);
+  box-shadow:0 2px 8px var(--shadow);
 }
-.nav-btn:hover{border-color:var(–gold);color:var(–gold);}
+.nav-btn:hover{border-color:var(--gold);color:var(--gold);}
 .nav-btn.primary{
-background:rgba(232,56,42,0.15);
-border-color:var(–red);color:var(–red);
+  background:rgba(192,57,43,0.07);
+  border-color:var(--red);color:var(--red);
 }
-.nav-btn.primary:hover{background:rgba(232,56,42,0.25);}
+.nav-btn.primary:hover{background:rgba(192,57,43,0.14);}
 
-.scene-dots{
-display:flex;gap:6px;
-}
+.scene-dots{display:flex;gap:6px;}
 .dot{
-width:6px;height:6px;border-radius:50%;
-background:var(–border);
-cursor:pointer;transition:all .2s;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--border);
+  cursor:pointer;transition:all .2s;
+  border:1px solid var(--border2);
 }
-.dot.active{background:var(–red);box-shadow:0 0 6px var(–red);}
+.dot.active{
+  background:var(--red);
+  border-color:var(--red);
+  box-shadow:0 0 5px rgba(192,57,43,0.4);
+}
 
 /* ── RIGHT PANEL ── */
 .panel{
-background:var(–bg2);
-display:flex;flex-direction:column;
-overflow:hidden;
+  background:var(--bg2);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  border-left:1px solid var(--border);
 }
 .p-section{
-padding:14px 16px;
-border-bottom:1px solid var(–border);
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
 }
+.p-section:nth-child(even){background:var(--bg2);}
 .p-title{
-font-family:‘Space Mono’,monospace;
-font-size:8px;letter-spacing:3px;
-text-transform:uppercase;color:var(–muted);
-margin-bottom:10px;
+  font-family:'Space Mono',monospace;
+  font-size:8px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:10px;
 }
 
 /* Input toggles */
 .feature-grid{
-display:grid;grid-template-columns:1fr 1fr;
-gap:6px;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:6px;
 }
 .feature-btn{
-padding:8px 8px;
-font-family:‘Crimson Pro’,serif;
-font-size:12px;
-border:1px solid var(–border);
-border-radius:3px;cursor:pointer;
-background:var(–panel);color:var(–muted);
-transition:all .2s;text-align:center;
-line-height:1.3;
+  padding:8px 8px;
+  font-family:'Crimson Pro',serif;
+  font-size:12px;
+  border:1px solid var(--border);
+  border-radius:4px;cursor:pointer;
+  background:var(--bg);color:var(--muted);
+  transition:all .2s;text-align:center;
+  line-height:1.3;
+  box-shadow:0 1px 3px var(--shadow);
 }
-.feature-btn:hover{border-color:var(–muted);}
+.feature-btn:hover{border-color:var(--border2);color:var(--text);}
 .feature-btn.on{
-color:var(–bright);
-box-shadow:0 0 8px currentColor;
+  background:white;
+  box-shadow:0 2px 8px var(--shadow);
 }
 
 /* Activation bars */
 .neuron-list{display:flex;flex-direction:column;gap:6px;}
 .neuron-row{
-display:grid;grid-template-columns:120px 1fr 38px;
-align-items:center;gap:8px;
+  display:grid;grid-template-columns:120px 1fr 38px;
+  align-items:center;gap:8px;
 }
 .neuron-label{
-font-family:‘Crimson Pro’,serif;
-font-size:11px;color:var(–muted);
-white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:'Crimson Pro',serif;
+  font-size:11px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.neuron-label .emoji{margin-right:4px;}
-.bar-bg{height:7px;background:var(–border);border-radius:1px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:1px;transition:width .4s ease,background .4s;}
+.bar-bg{
+  height:7px;
+  background:var(--border);
+  border-radius:2px;overflow:hidden;
+}
+.bar-fill{height:100%;border-radius:2px;transition:width .4s ease,background .4s;}
 .bar-val{
-font-family:‘Space Mono’,monospace;
-font-size:9px;text-align:right;
+  font-family:'Space Mono',monospace;
+  font-size:9px;text-align:right;
 }
 
 /* Decision box */
 .decision-box{
-margin-top:2px;
-padding:12px;
-border-radius:3px;
-border:1px solid;
-text-align:center;
-transition:all .4s;
+  margin-top:2px;
+  padding:12px;
+  border-radius:5px;
+  border:1px solid var(--border);
+  text-align:center;
+  transition:all .4s;
+  background:var(--bg);
 }
 .decision-label{
-font-family:‘Playfair Display’,serif;
-font-size:18px;font-weight:700;
-margin-bottom:4px;
+  font-family:'Playfair Display',serif;
+  font-size:18px;font-weight:700;
+  margin-bottom:4px;
 }
 .decision-sub{
-font-family:‘Crimson Pro’,serif;
-font-size:11px;font-style:italic;
+  font-family:'Crimson Pro',serif;
+  font-size:11px;font-style:italic;
+  color:var(--muted);
 }
 
 /* Explanation */
 .explain-scroll{
-flex:1;overflow-y:auto;
-padding:14px 16px;
+  flex:1;overflow-y:auto;
+  padding:14px 16px;
+  background:var(--bg2);
 }
 .explain-card{
-background:var(–panel);
-border:1px solid var(–border);
-border-radius:4px;
-padding:12px 14px;
-margin-bottom:10px;
-font-family:‘Crimson Pro’,serif;
-font-size:12px;line-height:1.7;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:5px;
+  padding:12px 14px;
+  margin-bottom:10px;
+  font-family:'Crimson Pro',serif;
+  font-size:12px;line-height:1.75;
+  color:var(--text);
+  box-shadow:0 1px 4px var(--shadow);
 }
 .explain-card .card-title{
-font-family:‘Space Mono’,monospace;
-font-size:8px;letter-spacing:2px;
-text-transform:uppercase;
-color:var(–muted);margin-bottom:6px;
+  font-family:'Space Mono',monospace;
+  font-size:8px;letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px;
 }
-.explain-card .hi{color:var(–gold);font-weight:600;}
-.explain-card .red{color:var(–red);}
-.explain-card .grn{color:var(–green);}
-.explain-card .blue{color:var(–blue);}
+.explain-card .hi{color:var(--gold);font-weight:600;}
+.explain-card .red{color:var(--red);}
+.explain-card .grn{color:var(--green);}
+.explain-card .blue{color:var(--blue);}
 
 /* Scrollbar */
 .explain-scroll::-webkit-scrollbar{width:3px;}
-.explain-scroll::-webkit-scrollbar-track{background:var(–bg2);}
-.explain-scroll::-webkit-scrollbar-thumb{background:var(–border);}
+.explain-scroll::-webkit-scrollbar-track{background:var(--bg2);}
+.explain-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 </style>
-
 </head>
 <body>
 
@@ -269,44 +293,38 @@ color:var(–muted);margin-bottom:6px;
   <div class="stage">
     <canvas id="netCanvas"></canvas>
 
-```
-<div class="story-box">
-  <div class="story-scene" id="storyScene">Prolog</div>
-  <div class="story-text" id="storyText">Lade Geschichte...</div>
-</div>
+    <div class="story-box">
+      <div class="story-scene" id="storyScene">Prolog</div>
+      <div class="story-text" id="storyText">Lade Geschichte...</div>
+    </div>
 
-<div class="scene-nav">
-  <button class="nav-btn" onclick="prevScene()">← Zurück</button>
-  <div class="scene-dots" id="sceneDots"></div>
-  <button class="nav-btn primary" onclick="nextScene()">Weiter →</button>
-</div>
-```
-
+    <div class="scene-nav">
+      <button class="nav-btn" onclick="prevScene()">← Zurück</button>
+      <div class="scene-dots" id="sceneDots"></div>
+      <button class="nav-btn primary" onclick="nextScene()">Weiter →</button>
+    </div>
   </div>
 
   <div class="panel">
     <div class="p-section">
-      <div class="p-title">Eingabe -- Was nimmt das Netz wahr?</div>
+      <div class="p-title">Eingabe — Was nimmt das Netz wahr?</div>
       <div class="feature-grid" id="featureGrid"></div>
     </div>
 
-```
-<div class="p-section">
-  <div class="p-title">Versteckte Schicht -- Muster</div>
-  <div class="neuron-list" id="hiddenList"></div>
-</div>
+    <div class="p-section">
+      <div class="p-title">Versteckte Schicht — Muster</div>
+      <div class="neuron-list" id="hiddenList"></div>
+    </div>
 
-<div class="p-section">
-  <div class="p-title">Output -- Entscheidung</div>
-  <div class="decision-box" id="decisionBox">
-    <div class="decision-label" id="decisionLabel">--</div>
-    <div class="decision-sub" id="decisionSub">Kein Signal</div>
-  </div>
-</div>
+    <div class="p-section">
+      <div class="p-title">Output — Entscheidung</div>
+      <div class="decision-box" id="decisionBox">
+        <div class="decision-label" id="decisionLabel">—</div>
+        <div class="decision-sub" id="decisionSub">Kein Signal</div>
+      </div>
+    </div>
 
-<div class="explain-scroll" id="explainScroll"></div>
-```
-
+    <div class="explain-scroll" id="explainScroll"></div>
   </div>
 </div>
 
@@ -317,16 +335,16 @@ color:var(–muted);margin-bottom:6px;
 const SCENES = [
   {
     name: 'Der Wald',
-    text: 'Rotkäppchen geht allein durch den <highlight>dunklen Wald</highlight> zur Großmutter. Das Netz hat noch keine Erfahrung -- alle Gewichte sind zufällig.',
+    text: 'Rotkäppchen geht allein durch den <highlight>dunklen Wald</highlight> zur Großmutter. Das Netz hat noch keine Erfahrung — alle Gewichte sind zufällig.',
     features: { gross_zaehne: 0, freundlich: 1, bekannt: 1, allein: 1, tierstimme: 0, geschenke: 1 },
     explanation: `<div class="card-title">Initialisierung</div>
-Das Netz startet mit <span class="hi">zufälligen Gewichten</span>. Es weiß noch nichts über Gefahr -- wie ein Kleinkind, das zum ersten Mal den Wald betritt.<br><br>
-<span class="blue">Eingaben:</span> Rotkäppchen ist <span class="grn">bekannt</span>, <span class="grn">freundlich</span>, trägt <span class="grn">Geschenke</span> -- aber ist <span class="red">allein</span>.`,
+Das Netz startet mit <span class="hi">zufälligen Gewichten</span>. Es weiß noch nichts über Gefahr — wie ein Kleinkind, das zum ersten Mal den Wald betritt.<br><br>
+<span class="blue">Eingaben:</span> Rotkäppchen ist <span class="grn">bekannt</span>, <span class="grn">freundlich</span>, trägt <span class="grn">Geschenke</span> — aber ist <span class="red">allein</span>.`,
     highlightNeuron: null
   },
   {
     name: 'Begegnung mit dem Wolf',
-    text: 'Ein großes Tier mit <highlight>langen Zähnen</highlight> spricht Rotkäppchen an. Es klingt freundlich -- aber etwas ist seltsam.',
+    text: 'Ein großes Tier mit <highlight>langen Zähnen</highlight> spricht Rotkäppchen an. Es klingt freundlich — aber etwas ist seltsam.',
     features: { gross_zaehne: 1, freundlich: 1, bekannt: 0, allein: 1, tierstimme: 1, geschenke: 0 },
     explanation: `<div class="card-title">Widersprüchliche Signale</div>
 Das Netz empfängt <span class="hi">gemischte Signale</span>: Freundliche Stimme <span class="grn">↑</span> aber große Zähne <span class="red">↑</span> und unbekannte Stimme <span class="red">↑</span>.<br><br>
@@ -335,36 +353,36 @@ Das Netz empfängt <span class="hi">gemischte Signale</span>: Freundliche Stimme
   },
   {
     name: 'Der Wolf fragt nach dem Weg',
-    text: 'Der Wolf fragt nach der Großmutter. Er lächelt -- aber seine <highlight>Tierstimme</highlight> verrät ihn. Rotkäppchen ist noch <highlight>allein</highlight>.',
+    text: 'Der Wolf fragt nach der Großmutter. Er lächelt — aber seine <highlight>Tierstimme</highlight> verrät ihn. Rotkäppchen ist noch <highlight>allein</highlight>.',
     features: { gross_zaehne: 1, freundlich: 1, bekannt: 0, allein: 1, tierstimme: 1, geschenke: 0 },
     explanation: `<div class="card-title">Muster-Erkennung</div>
-Das Hidden-Neuron <span class="hi">"Täuschung"</span> feuert jetzt sehr stark -- es hat gelernt: wenn jemand freundlich klingt, aber <span class="red">unbekannt + Tierstimme</span> kombiniert, ist das gefährlich.<br><br>
+Das Hidden-Neuron <span class="hi">"Täuschung"</span> feuert jetzt sehr stark — es hat gelernt: wenn jemand freundlich klingt, aber <span class="red">unbekannt + Tierstimme</span> kombiniert, ist das gefährlich.<br><br>
 <span class="blue">Forward Pass:</span> Input → Gewichte × Aktivierung → Summe → ReLU → Output`,
     highlightNeuron: 1
   },
   {
-    name: 'Bei der Großmutter -- der Wolf im Bett',
+    name: 'Bei der Großmutter — der Wolf im Bett',
     text: 'Rotkäppchen kommt an. Aber die Großmutter hat <highlight>was für große Zähne</highlight>! Und eine seltsame <highlight>tiefe Stimme</highlight>...',
     features: { gross_zaehne: 1, freundlich: 1, bekannt: 1, allein: 1, tierstimme: 1, geschenke: 0 },
     explanation: `<div class="card-title">Höchste Gefahr!</div>
 Alle Gefahren-Merkmale aktiv: <span class="red">Zähne ✓ Tierstimme ✓ Allein ✓</span><br><br>
-Aber auch: <span class="grn">Bekannt ✓ Freundlich ✓</span> -- der Wolf tarnt sich!<br><br>
-Das Netz gibt maximalen <span class="red">Alarm</span> aus. Der Output-Wert nähert sich 1.0 -- <span class="hi">höchste Gefahrenstufe</span>.`,
+Aber auch: <span class="grn">Bekannt ✓ Freundlich ✓</span> — der Wolf tarnt sich!<br><br>
+Das Netz gibt maximalen <span class="red">Alarm</span> aus. Der Output-Wert nähert sich 1.0 — <span class="hi">höchste Gefahrenstufe</span>.`,
     highlightNeuron: 2
   },
   {
     name: 'Der Jäger kommt!',
-    text: 'Der <highlight>Jäger</highlight> erscheint -- bekannt, freundlich, keine Tierstimme. Das Netz erkennt: das ist <highlight>kein Feind</highlight>.',
+    text: 'Der <highlight>Jäger</highlight> erscheint — bekannt, freundlich, keine Tierstimme. Das Netz erkennt: das ist <highlight>kein Feind</highlight>.',
     features: { gross_zaehne: 0, freundlich: 1, bekannt: 1, allein: 0, tierstimme: 0, geschenke: 0 },
     explanation: `<div class="card-title">Sicheres Signal</div>
 Alle Gefahren-Merkmale aus: <span class="grn">Keine Zähne ✓ Bekannt ✓ Nicht allein ✓ Keine Tierstimme ✓</span><br><br>
-Das Netz gibt <span class="grn">grünes Licht</span>. Output nähert sich 0.0 -- <span class="hi">sicher</span>.<br><br>
+Das Netz gibt <span class="grn">grünes Licht</span>. Output nähert sich 0.0 — <span class="hi">sicher</span>.<br><br>
 So unterscheidet das Netz: gleiche Merkmale wie Rotkäppchen → vertrauen, wie Wolf → warnen.`,
     highlightNeuron: null
   },
   {
     name: 'Und sie lebten glücklich...',
-    text: 'Das Netz hat gelernt: <highlight>Gefahr ≠ Aussehen</highlight>. Es geht um Muster -- Zähne + Tierstimme + unbekannt = Wolf. Vertrauen braucht mehr als ein Lächeln.',
+    text: 'Das Netz hat gelernt: <highlight>Gefahr ≠ Aussehen</highlight>. Es geht um Muster — Zähne + Tierstimme + unbekannt = Wolf. Vertrauen braucht mehr als ein Lächeln.',
     features: { gross_zaehne: 0, freundlich: 1, bekannt: 1, allein: 0, tierstimme: 0, geschenke: 1 },
     explanation: `<div class="card-title">Was das Netz gelernt hat</div>
 Das Märchen ist eine perfekte <span class="hi">Trainingsgeschichte</span> für ein neuronales Netz:<br><br>
@@ -435,10 +453,14 @@ function drawNet() {
   ctx.save(); ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
 
-  // Background
+  // Background — warm paper
   const bg = ctx.createLinearGradient(0,0,W,H);
-  bg.addColorStop(0,'#1a0a08'); bg.addColorStop(1,'#0f0604');
+  bg.addColorStop(0,'#fdf8f2'); bg.addColorStop(1,'#f5ede0');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  // Subtle grid
+  ctx.strokeStyle='rgba(200,184,158,0.3)'; ctx.lineWidth=0.5;
+  for(let gx=0;gx<W;gx+=40){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(let gy=0;gy<H;gy+=40){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
 
   const net = computeNetwork(inputs);
   const highlightN = SCENES[currentScene].highlightNeuron;
@@ -507,9 +529,9 @@ function drawNet() {
     }
     // Circle
     ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
-    ctx.fillStyle = on ? `${f.color}33` : 'rgba(42,18,9,0.9)';
+    ctx.fillStyle = on ? `${f.color}22` : 'rgba(255,252,246,0.95)';
     ctx.fill();
-    ctx.strokeStyle = on ? f.color : 'var(--border)';
+    ctx.strokeStyle = on ? f.color : '#c8b89e';
     ctx.lineWidth = on ? 2 : 1;
     ctx.stroke();
     // Emoji
@@ -518,14 +540,14 @@ function drawNet() {
     ctx.fillText(f.emoji, x, y+5);
     // Label
     ctx.font = '9px Space Mono';
-    ctx.fillStyle = on ? getComputedColor(f.color) : '#4a2015';
+    ctx.fillStyle = on ? getComputedColor(f.color) : '#8a7060';
     ctx.textAlign = 'right';
     ctx.fillText(f.label, x-26, y+4);
   });
 
   // ── Layer Labels ──
   ctx.font = '700 8px Space Mono';
-  ctx.fillStyle = '#4a2015';
+  ctx.fillStyle = '#8a7060';
   ctx.textAlign = 'center';
   ctx.fillText('INPUT', colX[0], H*0.08);
   ctx.fillText('HIDDEN LAYER', colX[1], H*0.08);
@@ -552,30 +574,30 @@ function drawNet() {
     // Circle
     ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
     const nodeGrad = ctx.createRadialGradient(x-4,y-4,2,x,y,R);
-    const brightness = Math.floor(a*120);
+    const brightness = Math.floor(a*100);
     if (j===2) {
-      nodeGrad.addColorStop(0,`rgb(${20+brightness/3},${40+brightness},${20+brightness/3})`);
-      nodeGrad.addColorStop(1,`rgb(10,${15+brightness/2},10)`);
+      nodeGrad.addColorStop(0,`rgb(${220-brightness},${240},${220-brightness/2})`);
+      nodeGrad.addColorStop(1,`rgb(${200-brightness},${220-brightness/3},${200-brightness/2})`);
     } else {
-      nodeGrad.addColorStop(0,`rgb(${40+brightness},${15+brightness/4},${10+brightness/4})`);
-      nodeGrad.addColorStop(1,`rgb(${15+brightness/3},8,6)`);
+      nodeGrad.addColorStop(0,`rgb(${255},${230-brightness},${220-brightness})`);
+      nodeGrad.addColorStop(1,`rgb(${240-brightness/3},${215-brightness},${205-brightness})`);
     }
     ctx.fillStyle=nodeGrad; ctx.fill();
     ctx.strokeStyle = isHl
-      ? (j===2 ? '#4caf72' : '#e8382a')
-      : (a>0.2 ? (j===2?'rgba(76,175,114,0.6)':'rgba(232,56,42,0.5)') : '#4a2015');
+      ? (j===2 ? '#27855a' : '#c0392b')
+      : (a>0.2 ? (j===2?'rgba(39,133,90,0.7)':'rgba(192,57,43,0.6)') : '#c8b89e');
     ctx.lineWidth = isHl ? 2 : 1;
     ctx.stroke();
 
     // Value
     ctx.font = 'bold 9px Space Mono';
-    ctx.fillStyle = a>0.3 ? '#fff8f0' : '#7a5a4a';
+    ctx.fillStyle = a>0.3 ? '#1a1008' : '#8a7060';
     ctx.textAlign = 'center';
     ctx.fillText(a.toFixed(2), x, y+3.5);
 
     // Label right
     ctx.font = '9px Crimson Pro';
-    ctx.fillStyle = a>0.2 ? (j===2?'#4caf72':'#e8382a') : '#4a2015';
+    ctx.fillStyle = a>0.2 ? (j===2?'#27855a':'#c0392b') : '#8a7060';
     ctx.textAlign = 'left';
     ctx.fillText(h.label, x+R+8, y+4);
   });
@@ -596,10 +618,10 @@ function drawNet() {
 
   // Circle
   ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
-  const r2 = Math.floor(danger*232+20), g2 = Math.floor((1-danger)*160+20);
-  ctx.fillStyle=`rgb(${r2},${g2},20)`;
+  const r2 = Math.floor(255 - danger*40), g2 = Math.floor(245 - danger*140), b2 = Math.floor(240 - danger*160);
+  ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
   ctx.fill();
-  ctx.strokeStyle = danger>0.5 ? '#e8382a' : '#4caf72';
+  ctx.strokeStyle = danger>0.5 ? '#c0392b' : '#27855a';
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
@@ -608,15 +630,15 @@ function drawNet() {
   ctx.textAlign='center';
   ctx.fillText(danger>0.65 ? '🐺' : danger>0.4 ? '⚠️' : '✅', x, y-4);
   ctx.font='bold 10px Space Mono';
-  ctx.fillStyle='#fff8f0';
+  ctx.fillStyle = danger>0.5 ? '#7a0e05' : '#0e4a2a';
   ctx.fillText(danger.toFixed(2), x, y+16);
 
   // Danger label
   ctx.font='700 9px Space Mono';
-  ctx.fillStyle = danger>0.5 ? '#e8382a' : '#4caf72';
+  ctx.fillStyle = danger>0.5 ? '#c0392b' : '#27855a';
   ctx.fillText('GEFAHR', x, y+R+16);
   ctx.font='400 8px Space Mono';
-  ctx.fillStyle='#7a5a4a';
+  ctx.fillStyle='#8a7060';
   ctx.fillText(danger>0.65?'HOCH':danger>0.4?'MITTEL':'GERING', x, y+R+28);
 
   ctx.restore();
@@ -624,11 +646,11 @@ function drawNet() {
 
 function getComputedColor(cssVar) {
   const map = {
-    'var(--red)':'#e8382a','var(--green)':'#4caf72',
-    'var(--blue)':'#5ab4d4','var(--wolf)':'#8a9aaa',
-    'var(--gold)':'#f0a830','var(--purple)':'#9b6fd4'
+    'var(--red)':'#c0392b','var(--green)':'#27855a',
+    'var(--blue)':'#2478a8','var(--wolf)':'#607080',
+    'var(--gold)':'#c07a10','var(--purple)':'#7c4dbd'
   };
-  return map[cssVar]||'#f0e8d8';
+  return map[cssVar]||'#2a1e14';
 }
 
 // ══════════════════════════════════════════════
@@ -672,15 +694,15 @@ function buildDecision() {
   if (d > 0.65) {
     box.style.borderColor='#e8382a'; box.style.background='rgba(232,56,42,0.08)';
     label.style.color='#e8382a'; label.textContent='🐺 WOLF!';
-    sub.textContent = `Gefahr: ${(d*100).toFixed(0)}% -- Lauf weg!`;
+    sub.textContent = `Gefahr: ${(d*100).toFixed(0)}% — Lauf weg!`;
   } else if (d > 0.4) {
     box.style.borderColor='#f0a830'; box.style.background='rgba(240,168,48,0.08)';
     label.style.color='#f0a830'; label.textContent='⚠️ Vorsicht';
-    sub.textContent = `Unsicher: ${(d*100).toFixed(0)}% -- Aufpassen!`;
+    sub.textContent = `Unsicher: ${(d*100).toFixed(0)}% — Aufpassen!`;
   } else {
     box.style.borderColor='#4caf72'; box.style.background='rgba(76,175,114,0.08)';
     label.style.color='#4caf72'; label.textContent='✅ Sicher';
-    sub.textContent = `Gefahr: ${(d*100).toFixed(0)}% -- Alles gut!`;
+    sub.textContent = `Gefahr: ${(d*100).toFixed(0)}% — Alles gut!`;
   }
 }
 
@@ -753,6 +775,5 @@ window.addEventListener('resize', () => { resize(); });
 goScene(0);
 resize();
 </script>
-
 </body>
 </html>
