@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer — Attention Is All You Need</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #03050f;
+  --bg2:      #070b1a;
+  --panel:    #0c1123;
+  --border:   #1a2340;
+  --glow:     #00d4ff;
+  --glow2:    #ff6b35;
+  --glow3:    #7c4dff;
+  --q:        #ff6b6b;
+  --k:        #ffd93d;
+  --v:        #6bcb77;
+  --out:      #00d4ff;
+  --text:     #c8d8f0;
+  --muted:    #3a4a6a;
+  --bright:   #ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Nunito',sans-serif;
+  min-height:100vh;
+  overflow:hidden;
+}
+
+/* Starfield */
+body::before{
+content:’’;
+position:fixed;inset:0;
+background:
+radial-gradient(ellipse at 20% 50%, rgba(0,212,255,0.04) 0%, transparent 50%),
+radial-gradient(ellipse at 80% 20%, rgba(124,77,255,0.05) 0%, transparent 40%),
+radial-gradient(ellipse at 60% 80%, rgba(255,107,53,0.04) 0%, transparent 40%);
+pointer-events:none;z-index:0;
+}
+
+/* ── HEADER ── */
+header{
+display:flex;align-items:center;gap:16px;
+padding:14px 24px;
+background:rgba(7,11,26,0.95);
+border-bottom:1px solid var(–border);
+position:relative;z-index:10;
+backdrop-filter:blur(12px);
+}
+header h1{
+font-family:‘Orbitron’,monospace;
+font-size:16px;font-weight:900;
+letter-spacing:3px;
+background:linear-gradient(90deg,var(–glow),var(–glow3));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+white-space:nowrap;
+}
+.hdr-sub{
+font-family:‘Share Tech Mono’,monospace;
+font-size:9px;letter-spacing:3px;
+color:var(–muted);text-transform:uppercase;
+}
+.tab-row{
+display:flex;gap:4px;margin-left:auto;
+}
+.tab{
+padding:5px 14px;
+font-family:‘Share Tech Mono’,monospace;
+font-size:9px;letter-spacing:2px;text-transform:uppercase;
+border:1px solid var(–border);
+border-radius:2px;cursor:pointer;
+color:var(–muted);background:transparent;
+transition:all .15s;
+}
+.tab:hover{color:var(–text);border-color:var(–muted);}
+.tab.active{
+color:var(–glow);border-color:var(–glow);
+background:rgba(0,212,255,0.08);
+box-shadow:0 0 10px rgba(0,212,255,0.2);
+}
+
+/* ── MAIN LAYOUT ── */
+.app{
+display:grid;
+grid-template-columns:1fr 300px;
+height:calc(100vh - 52px);
+position:relative;z-index:1;
+}
+
+/* ── CENTER STAGE ── */
+.stage{
+position:relative;
+overflow:hidden;
+border-right:1px solid var(–border);
+}
+#mainCanvas{display:block;width:100%;height:100%;}
+
+/* Sentence input bar */
+.sentence-bar{
+position:absolute;top:14px;left:50%;transform:translateX(-50%);
+display:flex;gap:6px;align-items:center;
+background:rgba(12,17,35,0.95);
+border:1px solid var(–border);
+border-radius:4px;padding:6px 10px;
+backdrop-filter:blur(8px);
+z-index:5;
+}
+.token-chip{
+padding:5px 11px;
+font-family:‘Share Tech Mono’,monospace;
+font-size:11px;
+border-radius:3px;
+border:1px solid;
+cursor:pointer;
+transition:all .2s;
+white-space:nowrap;
+user-select:none;
+}
+.token-chip:hover{transform:translateY(-2px);}
+.token-chip.selected{
+box-shadow:0 0 14px currentColor;
+transform:translateY(-2px);
+}
+
+.input-hint{
+position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+font-family:‘Share Tech Mono’,monospace;
+font-size:9px;letter-spacing:2px;color:var(–muted);
+white-space:nowrap;
+}
+
+/* ── RIGHT PANEL ── */
+.panel{
+background:var(–bg2);
+display:flex;flex-direction:column;
+overflow:hidden;
+}
+.p-section{
+padding:14px 16px;
+border-bottom:1px solid var(–border);
+}
+.p-title{
+font-family:‘Share Tech Mono’,monospace;
+font-size:8px;letter-spacing:3px;
+text-transform:uppercase;color:var(–muted);
+margin-bottom:10px;
+}
+
+/* QKV rows */
+.qkv-grid{display:flex;flex-direction:column;gap:6px;}
+.qkv-row{
+display:grid;grid-template-columns:22px 1fr 40px;
+align-items:center;gap:8px;
+}
+.qkv-badge{
+font-family:‘Share Tech Mono’,monospace;
+font-size:9px;font-weight:700;
+padding:2px 5px;border-radius:2px;
+text-align:center;
+}
+.qkv-bar-bg{height:8px;background:var(–border);border-radius:1px;overflow:hidden;}
+.qkv-bar-fill{height:100%;border-radius:1px;transition:width .25s;}
+.qkv-num{
+font-family:‘Share Tech Mono’,monospace;
+font-size:9px;text-align:right;
+}
+
+/* Attention heatmap */
+#heatCanvas{display:block;width:100%;aspect-ratio:1;}
+
+/* Score table */
+.score-table{width:100%;border-collapse:collapse;}
+.score-table td,.score-table th{
+font-family:‘Share Tech Mono’,monospace;
+font-size:9px;padding:4px 6px;
+border:1px solid var(–border);
+text-align:center;
+}
+.score-table th{color:var(–muted);background:var(–panel);}
+
+/* Step explanation */
+.step-explain{
+flex:1;overflow-y:auto;
+padding:14px 16px;
+}
+.formula-box{
+background:var(–panel);
+border:1px solid var(–border);
+border-radius:4px;
+padding:12px;
+margin-bottom:10px;
+font-family:‘Share Tech Mono’,monospace;
+font-size:10px;
+line-height:1.9;
+}
+.formula-box .hi{color:var(–glow);}
+.formula-box .q{color:var(–q);}
+.formula-box .k{color:var(–k);}
+.formula-box .v{color:var(–v);}
+.formula-box .out{color:var(–out);}
+.formula-box .dim{color:var(–muted);}
+
+/* Head selector */
+.head-pills{display:flex;gap:4px;flex-wrap:wrap;}
+.head-pill{
+padding:3px 10px;
+font-family:‘Share Tech Mono’,monospace;font-size:9px;
+border:1px solid var(–border);border-radius:20px;
+cursor:pointer;color:var(–muted);background:transparent;
+transition:all .15s;
+}
+.head-pill.active{
+border-color:var(–glow3);color:var(–glow3);
+background:rgba(124,77,255,0.12);
+}
+
+/* Scrollbar */
+.step-explain::-webkit-scrollbar{width:3px;}
+.step-explain::-webkit-scrollbar-track{background:var(–bg2);}
+.step-explain::-webkit-scrollbar-thumb{background:var(–border);}
+
+/* Animated attention lines on canvas */
+@keyframes dash{to{stroke-dashoffset:-20;}}
+</style>
+
+</head>
+<body>
+
+<header>
+  <h1>TRANSFORMER</h1>
+  <span class="hdr-sub">Attention Is All You Need — Vaswani et al. 2017</span>
+  <div class="tab-row">
+    <div class="tab active" onclick="setView('attention',this)">Self-Attention</div>
+    <div class="tab" onclick="setView('multihead',this)">Multi-Head</div>
+    <div class="tab" onclick="setView('full',this)">Full Block</div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="stage">
+    <canvas id="mainCanvas"></canvas>
+
+```
+<div class="sentence-bar" id="tokenBar"></div>
+<div class="input-hint">← Klicke ein Token um dessen Attention zu sehen →</div>
+```
+
+  </div>
+
+  <div class="panel">
+    <div class="p-section">
+      <div class="p-title">Aktives Token — Q / K / V Vektoren</div>
+      <div class="qkv-grid" id="qkvDisplay"></div>
+    </div>
+
+```
+<div class="p-section">
+  <div class="p-title">Attention-Heatmap</div>
+  <canvas id="heatCanvas"></canvas>
+</div>
+
+<div class="p-section">
+  <div class="p-title">Attention Head</div>
+  <div class="head-pills" id="headPills"></div>
+</div>
+
+<div class="step-explain" id="stepExplain"></div>
+```
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const SENTENCES = {
+  attention: ['Die', 'Katze', 'saß', 'auf', 'der', 'Matte'],
+  multihead: ['The', 'model', 'attends', 'to', 'all', 'tokens'],
+  full:      ['Input', '→', 'Embed', '→', 'Attn', '→', 'FFN']
+};
+
+const TOKEN_COLORS = [
+  {bg:'rgba(255,107,107,0.15)',border:'#ff6b6b',text:'#ff6b6b'},
+  {bg:'rgba(255,217,61,0.15)', border:'#ffd93d',text:'#ffd93d'},
+  {bg:'rgba(107,203,119,0.15)',border:'#6bcb77',text:'#6bcb77'},
+  {bg:'rgba(0,212,255,0.15)',  border:'#00d4ff',text:'#00d4ff'},
+  {bg:'rgba(124,77,255,0.15)', border:'#7c4dff',text:'#7c4dff'},
+  {bg:'rgba(255,107,53,0.15)', border:'#ff6b35',text:'#ff6b35'},
+  {bg:'rgba(200,180,255,0.15)',border:'#c8b4ff',text:'#c8b4ff'},
+];
+
+const N_HEADS = 4;
+const D_MODEL = 8; // small for visualization
+
+let currentView = 'attention';
+let tokens = [...SENTENCES.attention];
+let selectedToken = 0;
+let selectedHead = 0;
+
+// Random but deterministic seed per session
+function seededRand(seed) {
+  let s = seed;
+  return () => { s = (s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; };
+}
+
+// Generate W_Q, W_K, W_V matrices for each head
+function genHeadWeights(head) {
+  const r = seededRand(head*997+42);
+  const dim = D_MODEL;
+  const W = () => Array.from({length:dim},()=>Array.from({length:dim},()=>(r()-0.5)*2));
+  return { WQ:W(), WK:W(), WV:W() };
+}
+
+// Generate embedding for token index
+function tokenEmbed(idx, total) {
+  const r = seededRand(idx*1337+7);
+  // Add positional encoding
+  return Array.from({length:D_MODEL},(_, d) => {
+    const base = r()*2-1;
+    const pos = d%2===0 ? Math.sin(idx/Math.pow(10000,d/D_MODEL))
+                        : Math.cos(idx/Math.pow(10000,(d-1)/D_MODEL));
+    return base*0.7 + pos*0.3;
+  });
+}
+
+// Matrix × vector
+function matVec(M, v) {
+  return M.map(row => row.reduce((s,w,i)=>s+w*v[i],0));
+}
+
+function dot(a,b){ return a.reduce((s,x,i)=>s+x*b[i],0); }
+function norm(v){ return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
+
+function softmax(arr) {
+  const max = Math.max(...arr);
+  const ex = arr.map(x=>Math.exp(x-max));
+  const sum = ex.reduce((a,b)=>a+b,0);
+  return ex.map(x=>x/sum);
+}
+
+// Compute attention scores for all tokens, given a query token and head
+function computeAttention(queryIdx, head) {
+  const {WQ,WK,WV} = genHeadWeights(head);
+  const embeds = tokens.map((_,i)=>tokenEmbed(i,tokens.length));
+  const Qs = embeds.map(e=>matVec(WQ,e));
+  const Ks = embeds.map(e=>matVec(WK,e));
+  const Vs = embeds.map(e=>matVec(WV,e));
+  const scale = Math.sqrt(D_MODEL);
+  const q = Qs[queryIdx];
+  const rawScores = Ks.map(k=>dot(q,k)/scale);
+  const attnWeights = softmax(rawScores);
+  // Weighted sum of V
+  const outVec = Array(D_MODEL).fill(0);
+  Vs.forEach((v,i)=>v.forEach((x,d)=>{ outVec[d]+=attnWeights[i]*x; }));
+  return { q:Qs[queryIdx], k:Ks, v:Vs, rawScores, attnWeights, outVec };
+}
+
+// Full attention matrix (all queries × all keys)
+function computeFullAttentionMatrix(head) {
+  return tokens.map((_,qi)=>computeAttention(qi,head).attnWeights);
+}
+
+// ══════════════════════════════════════════════
+// CANVAS
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  canvas.width = r.width*devicePixelRatio;
+  canvas.height = r.height*devicePixelRatio;
+  canvas.style.width = r.width+'px';
+  canvas.style.height = r.height+'px';
+  draw();
+}
+
+let animFrame = 0;
+function animate() {
+  animFrame++;
+  draw();
+  requestAnimationFrame(animate);
+}
+
+function draw() {
+  const dpr = devicePixelRatio;
+  const W = canvas.width/dpr, H = canvas.height/dpr;
+  ctx.save(); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  if (currentView==='attention') drawAttentionView(W,H);
+  else if (currentView==='multihead') drawMultiHeadView(W,H);
+  else drawFullBlockView(W,H);
+
+  ctx.restore();
+}
+
+// ─────────────────────────────
+// VIEW 1: Self-Attention
+// ─────────────────────────────
+function drawAttentionView(W, H) {
+  const n = tokens.length;
+  const attn = computeAttention(selectedToken, selectedHead);
+
+  // Token positions — two rows (source top, output bottom)
+  const pad = 80;
+  const xStep = (W - pad*2)/(n-1);
+  const yTop = H*0.28, yBot = H*0.72;
+
+  const srcPos = tokens.map((_,i)=>({x: pad+i*xStep, y: yTop}));
+  const outPos = tokens.map((_,i)=>({x: pad+i*xStep, y: yBot}));
+
+  // Background label
+  ctx.font = '700 9px Share Tech Mono';
+  ctx.fillStyle = 'rgba(58,74,106,0.6)';
+  ctx.textAlign = 'left';
+  ctx.fillText('INPUT TOKENS', pad, yTop-50);
+  ctx.fillText('OUTPUT (nach Attention)', pad, yBot+55);
+
+  // Attention flow arcs from selected token to all tokens
+  attn.attnWeights.forEach((w,i)=>{
+    if (w < 0.01) return;
+    const from = srcPos[selectedToken];
+    const to = srcPos[i];
+
+    // Arc above the token row
+    const cp1x = from.x, cp1y = yTop - 80 - w*60;
+    const cp2x = to.x,   cp2y = yTop - 80 - w*60;
+
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y-20);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, to.x, to.y-20);
+
+    const alpha = 0.15 + w*0.85;
+    const c = TOKEN_COLORS[i % TOKEN_COLORS.length];
+    ctx.strokeStyle = c.border.replace(')',`,${alpha})`).replace('rgb','rgba');
+    ctx.lineWidth = 0.5 + w*5;
+    ctx.stroke();
+
+    // Weight label on arc
+    if (w > 0.08) {
+      const mx = (from.x+to.x)/2;
+      const my = yTop - 90 - w*60;
+      ctx.font = '700 9px Share Tech Mono';
+      ctx.fillStyle = c.text;
+      ctx.textAlign = 'center';
+      ctx.fillText(w.toFixed(2), mx, my);
+    }
+  });
+
+  // Weighted-value arrows from source tokens down to output
+  attn.attnWeights.forEach((w,i)=>{
+    if (w < 0.02) return;
+    const src = srcPos[i];
+    const dst = outPos[selectedToken];
+    const alpha = 0.08 + w*0.5;
+    const c = TOKEN_COLORS[i % TOKEN_COLORS.length];
+
+    // dashed line
+    ctx.setLineDash([4,6]);
+    ctx.beginPath();
+    ctx.moveTo(src.x, src.y+20);
+    ctx.lineTo(dst.x+(i-selectedToken)*30, (src.y+dst.y)/2);
+    ctx.lineTo(dst.x, dst.y-20);
+    ctx.strokeStyle = c.border.replace(')',`,${alpha})`).replace('rgb','rgba');
+    ctx.lineWidth = 1 + w*3;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Draw source tokens
+  srcPos.forEach((p,i)=>{
+    const c = TOKEN_COLORS[i%TOKEN_COLORS.length];
+    const isSel = i===selectedToken;
+    const attnW = attn.attnWeights[i];
+
+    // Glow
+    if (isSel || attnW > 0.1) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 36, 0, Math.PI*2);
+      const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,36);
+      g.addColorStop(0, c.border.replace(')',`,${isSel?0.3:attnW*0.2})`).replace('rgb','rgba'));
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle=g; ctx.fill();
+    }
+
+    // Pill
+    const tw = ctx.measureText(tokens[i]).width + 28;
+    const th = 34;
+    roundRect(ctx, p.x-tw/2, p.y-th/2, tw, th, 5);
+    ctx.fillStyle = isSel ? c.border+'33' : c.bg;
+    ctx.fill();
+    ctx.strokeStyle = c.border;
+    ctx.lineWidth = isSel ? 2 : 1;
+    ctx.stroke();
+
+    // Token text
+    ctx.font = `${isSel?'700':'400'} 12px Share Tech Mono`;
+    ctx.fillStyle = c.text;
+    ctx.textAlign = 'center';
+    ctx.fillText(tokens[i], p.x, p.y+4.5);
+
+    // Attention weight below
+    ctx.font = '8px Share Tech Mono';
+    ctx.fillStyle = 'rgba(200,216,240,0.5)';
+    ctx.fillText(attnW.toFixed(2), p.x, p.y+th/2+14);
+  });
+
+  // Draw output token (selected)
+  const op = outPos[selectedToken];
+  const oc = TOKEN_COLORS[selectedToken%TOKEN_COLORS.length];
+  const tw2 = ctx.measureText(tokens[selectedToken]).width + 32;
+  roundRect(ctx, op.x-tw2/2, op.y-20, tw2, 40, 5);
+  ctx.fillStyle = 'rgba(0,212,255,0.15)';
+  ctx.fill();
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.font = '700 12px Share Tech Mono';
+  ctx.fillStyle = '#00d4ff';
+  ctx.textAlign = 'center';
+  ctx.fillText(tokens[selectedToken] + "'", op.x, op.y+4.5);
+
+  // Label
+  ctx.font = '8px Share Tech Mono';
+  ctx.fillStyle = 'rgba(0,212,255,0.6)';
+  ctx.fillText('KONTEXTUELL', op.x, op.y+30);
+
+  // QKV labels on selected token
+  const sp = srcPos[selectedToken];
+  ctx.font = '700 8px Share Tech Mono';
+  [['Q',sp.x-28,sp.y-24,'#ff6b6b'],['K',sp.x,sp.y-24,'#ffd93d'],['V',sp.x+28,sp.y-24,'#6bcb77']].forEach(([l,x,y,c])=>{
+    ctx.fillStyle=c; ctx.textAlign='center'; ctx.fillText(l,x,y);
+  });
+}
+
+// ─────────────────────────────
+// VIEW 2: Multi-Head Attention
+// ─────────────────────────────
+function drawMultiHeadView(W, H) {
+  const n = tokens.length;
+  const pad = 60;
+  const xStep = (W - pad*2)/(n-1);
+  const headColors = ['#ff6b6b','#ffd93d','#6bcb77','#7c4dff'];
+
+  // Draw N_HEADS lanes
+  const laneH = (H - 80) / N_HEADS;
+
+  for (let h=0; h<N_HEADS; h++) {
+    const yBase = 50 + h*laneH + laneH*0.5;
+    const attn = computeAttention(selectedToken, h);
+    const isActive = h===selectedHead;
+
+    // Lane background
+    roundRect(ctx, pad-20, yBase-laneH*0.4, W-pad*2+40, laneH*0.8, 4);
+    ctx.fillStyle = isActive ? `rgba(${hexToRgb(headColors[h])},0.06)` : 'rgba(255,255,255,0.01)';
+    ctx.fill();
+    ctx.strokeStyle = isActive ? headColors[h] : 'rgba(26,35,64,0.5)';
+    ctx.lineWidth = isActive ? 1.5 : 0.5;
+    ctx.stroke();
+
+    // Head label
+    ctx.font = `${isActive?'700':'400'} 8px Share Tech Mono`;
+    ctx.fillStyle = isActive ? headColors[h] : 'rgba(58,74,106,0.8)';
+    ctx.textAlign = 'left';
+    ctx.fillText(`HEAD ${h+1}`, 8, yBase+3);
+
+    // Tokens + attention arcs
+    tokens.forEach((tok,i)=>{
+      const x = pad + i*xStep;
+      const w = attn.attnWeights[i];
+      const alpha = 0.1 + w*0.9;
+
+      if (i===selectedToken || w>0.05) {
+        ctx.beginPath();
+        ctx.arc(x, yBase, 12+w*8, 0, Math.PI*2);
+        ctx.fillStyle = i===selectedToken
+          ? headColors[h]+'44'
+          : `rgba(${hexToRgb(headColors[h])},${w*0.25})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${hexToRgb(headColors[h])},${alpha})`;
+        ctx.lineWidth = i===selectedToken ? 2 : 1;
+        ctx.stroke();
+      }
+
+      ctx.font = '9px Share Tech Mono';
+      ctx.fillStyle = isActive ? '#c8d8f0' : 'rgba(100,120,160,0.7)';
+      ctx.textAlign = 'center';
+      ctx.fillText(tok, x, yBase+4);
+
+      // Attention bar below token
+      const bw = 30, bh = 4;
+      ctx.fillStyle = 'rgba(26,35,64,0.8)';
+      roundRect(ctx, x-bw/2, yBase+18, bw, bh, 1);
+      ctx.fill();
+      ctx.fillStyle = `rgba(${hexToRgb(headColors[h])},${0.5+w*0.5})`;
+      roundRect(ctx, x-bw/2, yBase+18, bw*w, bh, 1);
+      ctx.fill();
+    });
+
+    // Attention arcs (only for active head)
+    if (isActive) {
+      tokens.forEach((_,i)=>{
+        const w = attn.attnWeights[i];
+        if (w<0.03) return;
+        const fx = pad+selectedToken*xStep, tx = pad+i*xStep;
+        ctx.beginPath();
+        ctx.moveTo(fx, yBase-14);
+        const cy = yBase - 20 - w*25;
+        ctx.quadraticCurveTo((fx+tx)/2, cy, tx, yBase-14);
+        ctx.strokeStyle = `rgba(${hexToRgb(headColors[h])},${0.2+w*0.7})`;
+        ctx.lineWidth = 0.5+w*3;
+        ctx.stroke();
+      });
+    }
+  }
+
+  // Concat + Linear arrow at bottom
+  const concatY = H - 22;
+  ctx.font = '700 9px Share Tech Mono';
+  ctx.fillStyle = '#00d4ff';
+  ctx.textAlign = 'center';
+  ctx.fillText('↑  Concat + Linear Projection  →  Output', W/2, concatY);
+}
+
+// ─────────────────────────────
+// VIEW 3: Full Transformer Block
+// ─────────────────────────────
+function drawFullBlockView(W, H) {
+  const blocks = [
+    {label:'Input Embedding\n+ Positional Encoding', color:'#6bcb77', y:0.08},
+    {label:'Multi-Head\nSelf-Attention', color:'#00d4ff', y:0.24},
+    {label:'Add & Norm\n(Residual)', color:'#ffd93d', y:0.38},
+    {label:'Feed-Forward\nNetwork (FFN)', color:'#ff6b35', y:0.54},
+    {label:'Add & Norm\n(Residual)', color:'#ffd93d', y:0.68},
+    {label:'Output\nLinear + Softmax', color:'#7c4dff', y:0.83},
+  ];
+
+  const bw = Math.min(280, W*0.5), bh = 52;
+  const cx = W/2;
+
+  blocks.forEach((b,idx)=>{
+    const y = H*b.y;
+
+    // Arrow from previous
+    if (idx>0) {
+      const prevY = H*blocks[idx-1].y + bh/2;
+      ctx.beginPath();
+      ctx.moveTo(cx, prevY+4);
+      ctx.lineTo(cx, y-bh/2-4);
+      ctx.strokeStyle = `rgba(${hexToRgb(b.color)},0.4)`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4,4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Arrowhead
+      ctx.beginPath();
+      ctx.moveTo(cx, y-bh/2-2);
+      ctx.lineTo(cx-5, y-bh/2-10);
+      ctx.lineTo(cx+5, y-bh/2-10);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${hexToRgb(b.color)},0.5)`;
+      ctx.fill();
+    }
+
+    // Block box
+    roundRect(ctx, cx-bw/2, y-bh/2, bw, bh, 6);
+    ctx.fillStyle = `rgba(${hexToRgb(b.color)},0.08)`;
+    ctx.fill();
+    ctx.strokeStyle = b.color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Glow on box
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 10;
+    roundRect(ctx, cx-bw/2, y-bh/2, bw, bh, 6);
+    ctx.strokeStyle = `rgba(${hexToRgb(b.color)},0.3)`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Label
+    const lines = b.label.split('\n');
+    ctx.textAlign='center';
+    lines.forEach((line,li)=>{
+      ctx.font = `${li===0?'700':'400'} ${li===0?'11':'9'}px Share Tech Mono`;
+      ctx.fillStyle = li===0 ? b.color : 'rgba(200,216,240,0.6)';
+      ctx.fillText(line, cx, y + (lines.length===2 ? (li===0?-5:10) : 3));
+    });
+
+    // Residual connections (skip connections)
+    if (idx===2 || idx===4) {
+      const startIdx = idx===2 ? 1 : 3;
+      const startY = H*blocks[startIdx].y - bh/2;
+      const endY = y + bh/2;
+      const rx = cx + bw/2 + 24;
+
+      ctx.beginPath();
+      ctx.moveTo(cx+bw/2, H*blocks[startIdx].y);
+      ctx.lineTo(rx, H*blocks[startIdx].y);
+      ctx.lineTo(rx, endY-bh/2);
+      ctx.lineTo(cx+bw/2, endY-bh/2);
+      ctx.strokeStyle = '#ffd93d44';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3,3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = '700 8px Share Tech Mono';
+      ctx.fillStyle = '#ffd93d88';
+      ctx.textAlign = 'left';
+      ctx.fillText('+', rx+5, (H*blocks[startIdx].y + endY)/2);
+    }
+
+    // Attention detail inside Multi-Head box
+    if (idx===1) {
+      const n = 4;
+      const hw = (bw-40)/n;
+      for(let h=0;h<n;h++){
+        const hx = cx-bw/2+20+h*(hw+4)+hw/2;
+        roundRect(ctx, hx-hw/2+1, y+6, hw-2, 16, 2);
+        ctx.fillStyle = `rgba(${hexToRgb(TOKEN_COLORS[h].border)},0.2)`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${hexToRgb(TOKEN_COLORS[h].border)},0.5)`;
+        ctx.lineWidth=0.5; ctx.stroke();
+        ctx.font='7px Share Tech Mono';
+        ctx.fillStyle = TOKEN_COLORS[h].text;
+        ctx.textAlign='center';
+        ctx.fillText(`H${h+1}`, hx, y+18);
+      }
+    }
+  });
+
+  // N× label
+  ctx.font='700 10px Share Tech Mono';
+  ctx.fillStyle='rgba(58,74,106,0.8)';
+  ctx.textAlign='right';
+  ctx.fillText('×N Schichten', cx+bw/2+50, H*0.38);
+}
+
+// ── Helpers ──
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x+r, y);
+  c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+  c.closePath();
+}
+function hexToRgb(hex) {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '255,255,255';
+}
+
+// ══════════════════════════════════════════════
+// HEATMAP
+// ══════════════════════════════════════════════
+function drawHeatmap() {
+  const hc = document.getElementById('heatCanvas');
+  const r = hc.parentElement.getBoundingClientRect();
+  const size = r.width;
+  hc.width = size*devicePixelRatio;
+  hc.height = size*devicePixelRatio;
+  hc.style.width = size+'px'; hc.style.height = size+'px';
+  const hctx = hc.getContext('2d');
+  hctx.save(); hctx.scale(devicePixelRatio,devicePixelRatio);
+
+  const mat = computeFullAttentionMatrix(selectedHead);
+  const n = tokens.length;
+  const cellSize = size / (n+1);
+  const off = cellSize;
+
+  hctx.clearRect(0,0,size,size);
+  hctx.fillStyle = '#070b1a';
+  hctx.fillRect(0,0,size,size);
+
+  // Labels
+  hctx.font = `bold ${Math.min(8,cellSize*0.38)}px Share Tech Mono`;
+  tokens.forEach((tok,i)=>{
+    const c = TOKEN_COLORS[i%TOKEN_COLORS.length];
+    hctx.fillStyle = c.text;
+    hctx.textAlign = 'center';
+    hctx.fillText(tok.slice(0,4), off+i*cellSize+cellSize/2, cellSize*0.7);
+    hctx.fillText(tok.slice(0,4), cellSize*0.5, off+i*cellSize+cellSize*0.65);
+  });
+
+  // Cells
+  mat.forEach((row,qi)=>{
+    row.forEach((w,ki)=>{
+      const x = off+ki*cellSize, y = off+qi*cellSize;
+      const r2=Math.floor(w*0), g2=Math.floor(w*200+55), b2=Math.floor(w*255);
+      hctx.fillStyle=`rgba(0,${Math.floor(w*180+30)},${Math.floor(w*255)},${0.1+w*0.85})`;
+      hctx.fillRect(x,y,cellSize-1,cellSize-1);
+      if (w>0.12){
+        hctx.font=`${Math.min(7,cellSize*0.32)}px Share Tech Mono`;
+        hctx.fillStyle='rgba(255,255,255,0.8)';
+        hctx.textAlign='center';
+        hctx.fillText(w.toFixed(2),x+cellSize/2,y+cellSize*0.65);
+      }
+      // Highlight selected row/col
+      if (qi===selectedToken || ki===selectedToken){
+        hctx.strokeStyle='rgba(0,212,255,0.4)';
+        hctx.lineWidth=1;
+        hctx.strokeRect(x,y,cellSize-1,cellSize-1);
+      }
+    });
+  });
+  hctx.restore();
+}
+
+// ══════════════════════════════════════════════
+// QKV DISPLAY
+// ══════════════════════════════════════════════
+function updateQKV() {
+  const attn = computeAttention(selectedToken, selectedHead);
+  const container = document.getElementById('qkvDisplay');
+  const maxV = 2;
+  const rows = [
+    {label:'Q', color:'var(--q)', vec:attn.q},
+    {label:'K', color:'var(--k)', vec:attn.k[selectedToken]},
+    {label:'V', color:'var(--v)', vec:attn.v[selectedToken]},
+    {label:'Out',color:'var(--out)',vec:attn.outVec},
+  ];
+  container.innerHTML = rows.map(({label,color,vec})=>{
+    const avg = vec.reduce((s,x)=>s+Math.abs(x),0)/vec.length;
+    const pct = Math.min(100,(avg/maxV)*100);
+    const val = avg.toFixed(3);
+    return `<div class="qkv-row">
+      <div class="qkv-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${label}</div>
+      <div class="qkv-bar-bg"><div class="qkv-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="qkv-num" style="color:${color}">${val}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// STEP EXPLANATION
+// ══════════════════════════════════════════════
+function updateExplain() {
+  const attn = computeAttention(selectedToken, selectedHead);
+  const topK = [...attn.attnWeights.map((w,i)=>({w,i}))].sort((a,b)=>b.w-a.w).slice(0,3);
+  const dkSqrt = Math.sqrt(D_MODEL).toFixed(2);
+
+  document.getElementById('stepExplain').innerHTML = `
+<div class="formula-box">
+<span class="hi">Attention-Formel:</span><br>
+<span class="out">Attention</span>(<span class="q">Q</span>,<span class="k">K</span>,<span class="v">V</span>)<br>
+= softmax(<span class="q">Q</span><span class="k">Kᵀ</span> / √<span class="dim">dₖ</span>) · <span class="v">V</span><br><br>
+<span class="dim">√dₖ = √${D_MODEL} = ${dkSqrt}</span><br>
+<span class="dim">(verhindert zu kleine Gradienten)</span>
+</div>
+
+<div class="formula-box">
+<span class="hi">Token: "${tokens[selectedToken]}"</span><br>
+<span class="q">Query Q</span> = <span class="q">W_Q</span> · Embed<br>
+<span class="k">Key   K</span> = <span class="k">W_K</span> · Embed<br>
+<span class="v">Value V</span> = <span class="v">W_V</span> · Embed<br><br>
+<span class="hi">Top Attention zu:</span><br>
+${topK.map(({w,i})=>`<span class="out">→ "${tokens[i]}"</span> <span class="dim">${w.toFixed(3)}</span>`).join('<br>')}
+</div>
+
+<div class="formula-box">
+<span class="hi">Warum funktioniert das?</span><br>
+Jedes Token fragt:<br>
+<span class="q">"Worauf soll ich mich<br>konzentrieren?"</span> (Query)<br><br>
+Andere bieten an:<br>
+<span class="k">"So bin ich relevant"</span> (Key)<br><br>
+Und geben weiter:<br>
+<span class="v">"Das ist meine Info"</span> (Value)<br><br>
+<span class="dim">→ Kontext-bewusstes Embedding!</span>
+</div>
+
+<div class="formula-box">
+<span class="hi">Multi-Head = ${N_HEADS} Köpfe</span><br>
+<span class="dim">Jeder Head lernt andere<br>Beziehungsmuster:<br>
+• Syntax, Semantik<br>
+• Referenzen, Reihenfolge<br>
+→ Concat + Linear am Ende</span>
+</div>`;
+}
+
+// ══════════════════════════════════════════════
+// TOKEN BAR
+// ══════════════════════════════════════════════
+function buildTokenBar() {
+  const bar = document.getElementById('tokenBar');
+  bar.innerHTML = tokens.map((tok,i)=>{
+    const c = TOKEN_COLORS[i%TOKEN_COLORS.length];
+    return `<div class="token-chip ${i===selectedToken?'selected':''}"
+      style="background:${c.bg};border-color:${c.border};color:${c.text}"
+      onclick="selectToken(${i})">${tok}</div>`;
+  }).join('');
+}
+
+function buildHeadPills() {
+  const p = document.getElementById('headPills');
+  p.innerHTML = Array.from({length:N_HEADS},(_,h)=>`
+    <div class="head-pill ${h===selectedHead?'active':''}" onclick="selectHead(${h})">Head ${h+1}</div>
+  `).join('');
+}
+
+function selectToken(i) {
+  selectedToken = i;
+  buildTokenBar();
+  updateAll();
+}
+function selectHead(h) {
+  selectedHead = h;
+  buildHeadPills();
+  updateAll();
+}
+function updateAll() {
+  updateQKV(); updateExplain(); drawHeatmap();
+}
+
+function setView(v, el) {
+  currentView = v;
+  tokens = [...SENTENCES[v]];
+  selectedToken = 0;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  buildTokenBar();
+  updateAll();
+  draw();
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+window.addEventListener('resize', () => { resize(); drawHeatmap(); });
+resize();
+buildTokenBar();
+buildHeadPills();
+updateAll();
+animate();
+</script>
+
+</body>
+</html>

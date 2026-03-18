@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backpropagation – Interaktiv</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f0e8;
+  --bg2: #ede8df;
+  --ink: #1a1510;
+  --ink2: #4a4035;
+  --muted: #8a7d6e;
+  --accent: #c0392b;
+  --accent2: #2980b9;
+  --accent3: #27ae60;
+  --warm: #e67e22;
+  --panel: #ffffff;
+  --border: #d4c9b8;
+  --shadow: rgba(26,21,16,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+color: var(–ink);
+font-family: ‘DM Sans’, sans-serif;
+min-height: 100vh;
+position: relative;
+}
+
+/* Paper texture overlay */
+body::before {
+content: ‘’;
+position: fixed; inset: 0;
+background-image: url(“data:image/svg+xml,%3Csvg xmlns=‘http://www.w3.org/2000/svg’ width=‘300’ height=‘300’%3E%3Cfilter id=‘n’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3CfeColorMatrix type=‘saturate’ values=‘0’/%3E%3C/filter%3E%3Crect width=‘300’ height=‘300’ filter=‘url(%23n)’ opacity=‘0.04’/%3E%3C/svg%3E”);
+pointer-events: none; z-index: 0; opacity: 0.6;
+}
+
+header {
+background: var(–ink);
+color: var(–bg);
+padding: 18px 32px;
+display: flex; align-items: baseline; gap: 20px;
+position: relative; z-index: 2;
+}
+header h1 {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 28px; letter-spacing: 2px;
+color: #f5f0e8;
+}
+header .sub {
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 10px; letter-spacing: 3px;
+color: #8a7d6e; text-transform: uppercase;
+}
+.epoch-badge {
+margin-left: auto;
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 11px; color: #f5f0e8;
+background: var(–accent); padding: 4px 10px;
+border-radius: 2px;
+}
+
+.main {
+display: grid;
+grid-template-columns: 1fr 340px;
+grid-template-rows: auto 1fr;
+gap: 0;
+height: calc(100vh - 62px);
+position: relative; z-index: 1;
+}
+
+/* ── LEFT: Network + Loss Chart ── */
+.left-col {
+display: flex; flex-direction: column;
+border-right: 2px solid var(–ink);
+overflow: hidden;
+}
+.net-area {
+flex: 1;
+position: relative;
+border-bottom: 2px solid var(–ink);
+min-height: 0;
+}
+#netCanvas { width:100%; height:100%; display:block; }
+
+.loss-area {
+height: 160px;
+padding: 12px 20px;
+background: var(–panel);
+position: relative;
+}
+.loss-label {
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 9px; letter-spacing: 3px;
+text-transform: uppercase; color: var(–muted);
+margin-bottom: 6px;
+}
+#lossCanvas { width:100%; height:100px; display:block; }
+
+/* ── RIGHT PANEL ── */
+.right-col {
+display: flex; flex-direction: column;
+overflow: hidden;
+}
+
+.section {
+padding: 18px 20px;
+border-bottom: 1px solid var(–border);
+}
+.section-title {
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 9px; letter-spacing: 3px;
+text-transform: uppercase; color: var(–muted);
+margin-bottom: 12px;
+}
+
+/* Dataset selector */
+.dataset-grid {
+display: grid; grid-template-columns: 1fr 1fr;
+gap: 6px;
+}
+.ds-btn {
+padding: 8px 10px;
+background: var(–bg2);
+border: 1px solid var(–border);
+border-radius: 3px;
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 10px; cursor: pointer;
+color: var(–ink2);
+transition: all 0.15s;
+text-align: center;
+}
+.ds-btn:hover { border-color: var(–ink); }
+.ds-btn.active {
+background: var(–ink); color: var(–bg);
+border-color: var(–ink);
+}
+
+/* Controls */
+.ctrl-row {
+display: flex; align-items: center;
+gap: 10px; margin-bottom: 10px;
+}
+.ctrl-label {
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 10px; color: var(–ink2); min-width: 80px;
+}
+.ctrl-val {
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 11px; font-weight: 600;
+color: var(–accent); min-width: 40px; text-align: right;
+}
+input[type=range] {
+flex: 1; -webkit-appearance: none;
+height: 3px; background: var(–border);
+border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+-webkit-appearance: none; width: 14px; height: 14px;
+background: var(–ink); border-radius: 50%; cursor: pointer;
+}
+
+/* Training buttons */
+.btn-row {
+display: flex; gap: 8px; margin-top: 4px;
+}
+.btn {
+flex: 1; padding: 9px 8px;
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 10px; letter-spacing: 1px;
+text-transform: uppercase; cursor: pointer;
+border-radius: 3px; border: 1px solid var(–ink);
+transition: all 0.15s;
+}
+.btn-primary { background: var(–ink); color: var(–bg); }
+.btn-primary:hover { background: var(–accent); border-color: var(–accent); }
+.btn-secondary { background: transparent; color: var(–ink2); }
+.btn-secondary:hover { background: var(–bg2); }
+.btn-danger { background: var(–accent); color: white; border-color: var(–accent); }
+.btn-danger:hover { opacity: 0.85; }
+
+/* Gradient display */
+.grad-panel {
+flex: 1; overflow-y: auto; padding: 18px 20px;
+}
+.grad-item {
+margin-bottom: 10px;
+}
+.grad-header {
+display: flex; justify-content: space-between;
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 10px; margin-bottom: 3px;
+}
+.grad-name { color: var(–ink2); }
+.grad-num { font-weight: 600; }
+.grad-bar-bg {
+height: 8px; background: var(–bg2);
+border-radius: 1px; overflow: hidden;
+position: relative;
+}
+.grad-bar-fill {
+height: 100%; border-radius: 1px;
+transition: width 0.2s, background 0.2s;
+position: absolute;
+}
+
+/* Step explanation */
+.step-box {
+background: var(–ink);
+color: var(–bg);
+padding: 14px 16px;
+border-radius: 3px;
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 10px; line-height: 1.8;
+margin-top: 6px;
+}
+.step-box .hi { color: #f39c12; }
+.step-box .red { color: #e74c3c; }
+.step-box .grn { color: #2ecc71; }
+.step-box .blue { color: #5dade2; }
+
+/* Metrics row */
+.metrics {
+display: grid; grid-template-columns: 1fr 1fr 1fr;
+gap: 1px; background: var(–border);
+border: 1px solid var(–border);
+border-radius: 3px; overflow: hidden;
+margin-bottom: 12px;
+}
+.metric {
+background: var(–panel);
+padding: 10px 12px; text-align: center;
+}
+.metric-val {
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 14px; font-weight: 700;
+color: var(–accent);
+}
+.metric-label {
+font-size: 9px; color: var(–muted);
+text-transform: uppercase; letter-spacing: 1px;
+margin-top: 2px;
+}
+
+/* Speed toggle */
+.speed-pills {
+display: flex; gap: 4px;
+}
+.pill {
+padding: 4px 10px;
+font-family: ‘IBM Plex Mono’, monospace;
+font-size: 9px; letter-spacing: 1px;
+border: 1px solid var(–border);
+border-radius: 20px; cursor: pointer;
+color: var(–ink2); background: var(–bg2);
+transition: all 0.15s;
+}
+.pill.active { background: var(–ink); color: var(–bg); border-color: var(–ink); }
+
+/* Scrollbar */
+.grad-panel::-webkit-scrollbar { width: 4px; }
+.grad-panel::-webkit-scrollbar-track { background: var(–bg2); }
+.grad-panel::-webkit-scrollbar-thumb { background: var(–border); border-radius: 2px; }
+
+@keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.flashing { animation: flash 0.4s ease; }
+</style>
+
+</head>
+<body>
+
+<header>
+  <h1>Backpropagation</h1>
+  <span class="sub">Gradient Descent Live</span>
+  <div class="epoch-badge" id="epochBadge">Epoche 0</div>
+</header>
+
+<div class="main">
+  <!-- LEFT -->
+  <div class="left-col">
+    <div class="net-area">
+      <canvas id="netCanvas"></canvas>
+    </div>
+    <div class="loss-area">
+      <div class="loss-label">Loss-Kurve (MSE) — jede Epoche</div>
+      <canvas id="lossCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+
+  <div class="right-col">
+
+```
+<div class="section">
+  <div class="section-title">Datensatz</div>
+  <div class="dataset-grid" id="datasetBtns">
+    <div class="ds-btn active" onclick="setDataset('xor')">XOR Problem</div>
+    <div class="ds-btn" onclick="setDataset('and')">AND Gate</div>
+    <div class="ds-btn" onclick="setDataset('or')">OR Gate</div>
+    <div class="ds-btn" onclick="setDataset('circle')">Circle Boundary</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Hyperparameter</div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Lernrate η</span>
+    <input type="range" id="lrSlider" min="-3" max="0" step="0.05" value="-1">
+    <span class="ctrl-val" id="lrVal">0.100</span>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Momentum</span>
+    <input type="range" id="momSlider" min="0" max="0.99" step="0.01" value="0">
+    <span class="ctrl-val" id="momVal">0.00</span>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Geschw.</span>
+    <div class="speed-pills">
+      <div class="pill active" onclick="setSpeed(1,this)">1×</div>
+      <div class="pill" onclick="setSpeed(5,this)">5×</div>
+      <div class="pill" onclick="setSpeed(20,this)">20×</div>
+      <div class="pill" onclick="setSpeed(100,this)">100×</div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="trainBtn" onclick="toggleTrain()">▶ Trainieren</button>
+    <button class="btn btn-secondary" onclick="stepOnce()">Step +1</button>
+    <button class="btn btn-danger" onclick="resetNet()">Reset</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Aktueller Status</div>
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-val" id="mLoss">—</div>
+      <div class="metric-label">Loss</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val" id="mAcc">—</div>
+      <div class="metric-label">Genauigkeit</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val" id="mGrad">—</div>
+      <div class="metric-label">Grad-Norm</div>
+    </div>
+  </div>
+  <div class="step-box" id="stepExplain">
+    Drücke <span class="hi">▶ Trainieren</span> oder <span class="blue">Step +1</span> um zu beginnen.<br>
+    Das Netz lernt durch<br>
+    <span class="red">Fehler berechnen</span> →<br>
+    <span class="grn">Gradienten zurückgeben</span> →<br>
+    <span class="hi">Gewichte anpassen</span>
+  </div>
+</div>
+
+<div class="grad-panel">
+  <div class="section-title">Gradienten (∂Loss/∂w)</div>
+  <div id="gradDisplay"></div>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// DATASETS
+// ══════════════════════════════════════════════
+const DATASETS = {
+  xor: {
+    X: [[0,0],[1,0],[0,1],[1,1]],
+    y: [[0],[1],[1],[0]],
+    name: 'XOR'
+  },
+  and: {
+    X: [[0,0],[1,0],[0,1],[1,1]],
+    y: [[0],[0],[0],[1]],
+    name: 'AND'
+  },
+  or: {
+    X: [[0,0],[1,0],[0,1],[1,1]],
+    y: [[0],[1],[1],[1]],
+    name: 'OR'
+  },
+  circle: {
+    X: [[0.2,0.2],[0.8,0.2],[0.2,0.8],[0.8,0.8],[0.5,0.5],[0.1,0.5],[0.9,0.5],[0.5,0.1],[0.5,0.9]],
+    y: [[0],[0],[0],[0],[1],[0],[0],[0],[0]],
+    name: 'Circle'
+  }
+};
+
+let currentDataset = 'xor';
+let dataset = DATASETS.xor;
+
+// ══════════════════════════════════════════════
+// NEURAL NETWORK (2-4-1)
+// ══════════════════════════════════════════════
+function randn() { return (Math.random()*2-1) * 0.5; }
+
+function initNet() {
+  return {
+    // Weights: W1[4×2], W2[1×4]
+    W1: Array.from({length:4}, () => [randn(), randn()]),
+    b1: Array.from({length:4}, () => 0),
+    W2: Array.from({length:1}, () => [randn(), randn(), randn(), randn()]),
+    b2: [0],
+    // Momentum terms
+    vW1: Array.from({length:4}, () => [0,0]),
+    vb1: Array.from({length:4}, () => 0),
+    vW2: Array.from({length:1}, () => [0,0,0,0]),
+    vb2: [0],
+    // For visualization
+    lastGrads: null,
+    lastActivations: null,
+    lastDeltas: null
+  };
+}
+
+let net = initNet();
+let epoch = 0;
+let lossHistory = [];
+let training = false;
+let trainInterval = null;
+let speed = 1;
+let lr = 0.1;
+let momentum = 0;
+
+function sigmoid(x) { return 1/(1+Math.exp(-x)); }
+function sigmoidD(x) { const s = sigmoid(x); return s*(1-s); }
+function tanh_(x) { return Math.tanh(x); }
+function tanhD(x) { return 1 - Math.tanh(x)**2; }
+
+function forward(x) {
+  // Layer 1
+  const z1 = net.W1.map((w,j) => w[0]*x[0] + w[1]*x[1] + net.b1[j]);
+  const a1 = z1.map(tanh_);
+  // Layer 2
+  const z2 = net.W2.map((w,j) => w.reduce((s,wi,i)=>s+wi*a1[i],0) + net.b2[j]);
+  const a2 = z2.map(sigmoid);
+  return {z1,a1,z2,a2};
+}
+
+function trainStep() {
+  const N = dataset.X.length;
+  let totalLoss = 0;
+
+  // Accumulate gradients
+  const dW1 = Array.from({length:4},()=>[0,0]);
+  const db1 = Array.from({length:4},()=>0);
+  const dW2 = Array.from({length:1},()=>[0,0,0,0]);
+  const db2 = [0];
+
+  let lastFwd = null;
+  let lastDeltas2 = null, lastDeltas1 = null;
+  let gradNorm = 0;
+
+  for (let n = 0; n < N; n++) {
+    const x = dataset.X[n];
+    const y = dataset.y[n];
+    const fwd = forward(x);
+    lastFwd = {x, ...fwd};
+
+    // Loss: MSE
+    const loss = fwd.a2.reduce((s,a,i)=>s+(a-y[i])**2, 0)/fwd.a2.length;
+    totalLoss += loss;
+
+    // Backprop output → hidden
+    const delta2 = fwd.a2.map((a,i)=> (a-y[i]) * sigmoidD(fwd.z2[i]));
+    lastDeltas2 = delta2;
+
+    for (let j=0; j<net.W2.length; j++) {
+      for (let i=0; i<net.W2[j].length; i++) {
+        dW2[j][i] += delta2[j]*fwd.a1[i];
+      }
+      db2[j] += delta2[j];
+    }
+
+    // Backprop hidden ← output
+    const delta1 = net.W1.map((_,i) => {
+      let sum = 0;
+      for (let j=0; j<net.W2.length; j++) sum += net.W2[j][i]*delta2[j];
+      return sum * tanhD(fwd.z1[i]);
+    });
+    lastDeltas1 = delta1;
+
+    for (let j=0; j<net.W1.length; j++) {
+      for (let i=0; i<net.W1[j].length; i++) {
+        dW1[j][i] += delta1[j]*x[i];
+      }
+      db1[j] += delta1[j];
+    }
+  }
+
+  // Average
+  const scale = 1/N;
+
+  // Update with momentum
+  const mom = momentum;
+  for (let j=0; j<net.W1.length; j++) {
+    for (let i=0; i<net.W1[j].length; i++) {
+      const g = dW1[j][i]*scale;
+      net.vW1[j][i] = mom*net.vW1[j][i] - lr*g;
+      net.W1[j][i] += net.vW1[j][i];
+      gradNorm += g*g;
+    }
+    const gb = db1[j]*scale;
+    net.vb1[j] = mom*net.vb1[j] - lr*gb;
+    net.b1[j] += net.vb1[j];
+  }
+  for (let j=0; j<net.W2.length; j++) {
+    for (let i=0; i<net.W2[j].length; i++) {
+      const g = dW2[j][i]*scale;
+      net.vW2[j][i] = mom*net.vW2[j][i] - lr*g;
+      net.W2[j][i] += net.vW2[j][i];
+      gradNorm += g*g;
+    }
+    const gb = db2[j]*scale;
+    net.vb2[j] = mom*net.vb2[j] - lr*gb;
+    net.b2[j] += net.vb2[j];
+  }
+
+  // Store for viz
+  net.lastActivations = lastFwd;
+  net.lastDeltas2 = lastDeltas2;
+  net.lastDeltas1 = lastDeltas1;
+  net.lastGrads = { dW1, db1, dW2, db2, scale };
+  net.lastGradNorm = Math.sqrt(gradNorm);
+
+  totalLoss /= N;
+  lossHistory.push(totalLoss);
+  if (lossHistory.length > 200) lossHistory.shift();
+  epoch++;
+
+  return totalLoss;
+}
+
+// ══════════════════════════════════════════════
+// CANVAS
+// ══════════════════════════════════════════════
+const netCanvas = document.getElementById('netCanvas');
+const nctx = netCanvas.getContext('2d');
+const lossCanvas = document.getElementById('lossCanvas');
+const lctx = lossCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const nr = netCanvas.parentElement.getBoundingClientRect();
+  netCanvas.width = nr.width * devicePixelRatio;
+  netCanvas.height = nr.height * devicePixelRatio;
+  netCanvas.style.width = nr.width+'px';
+  netCanvas.style.height = nr.height+'px';
+  const lr2 = lossCanvas.parentElement.getBoundingClientRect();
+  lossCanvas.width = lr2.width * devicePixelRatio;
+  lossCanvas.height = 100 * devicePixelRatio;
+  lossCanvas.style.width = lr2.width+'px';
+  lossCanvas.style.height = '100px';
+}
+
+function nodePos() {
+  const W = netCanvas.width/devicePixelRatio;
+  const H = netCanvas.height/devicePixelRatio;
+  const layers = [2,4,1];
+  const xPad = 80;
+  const xStep = (W-xPad*2)/(layers.length-1);
+  return layers.map((n,l) => {
+    const x = xPad + l*xStep;
+    return Array.from({length:n},(_,i)=>{
+      const yPad = 60;
+      const yStep = n>1 ? (H-yPad*2)/(n-1) : 0;
+      const y = n===1 ? H/2 : yPad + i*yStep;
+      return {x,y};
+    });
+  });
+}
+
+function wColor(w, alpha=1) {
+  if (w>0) return `rgba(41,128,185,${Math.min(1,0.2+Math.abs(w)*0.8)*alpha})`;
+  return `rgba(192,57,43,${Math.min(1,0.2+Math.abs(w)*0.8)*alpha})`;
+}
+function gradColor(g) {
+  const abs = Math.min(1, Math.abs(g)*10);
+  if (g<0) return `rgba(39,174,96,${0.3+abs*0.7})`;
+  return `rgba(231,76,60,${0.3+abs*0.7})`;
+}
+
+function drawNet() {
+  const dpr = devicePixelRatio;
+  const W = netCanvas.width/dpr, H = netCanvas.height/dpr;
+  nctx.save();
+  nctx.scale(dpr,dpr);
+  nctx.clearRect(0,0,W,H);
+
+  // Background gradient
+  const bg = nctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#faf6ef');
+  bg.addColorStop(1,'#f0ebe0');
+  nctx.fillStyle=bg; nctx.fillRect(0,0,W,H);
+
+  const pos = nodePos();
+  const layerLabels = ['Input\n(2 Neuronen)','Hidden\nTanh (4)','Output\nSigmoid (1)'];
+  const weights = [net.W1, net.W2];
+  const grads = net.lastGrads;
+  const acts = net.lastActivations;
+  const deltas = [net.lastDeltas1, net.lastDeltas2];
+
+  // ── Layer labels ──
+  pos.forEach((col,l)=>{
+    const cx = col[0].x;
+    const top = Math.min(...col.map(p=>p.y))-38;
+    nctx.font = '700 10px IBM Plex Mono';
+    nctx.fillStyle = '#8a7d6e';
+    nctx.textAlign = 'center';
+    layerLabels[l].split('\n').forEach((line,li)=>{
+      nctx.fillText(line.toUpperCase(), cx, top+li*13);
+    });
+  });
+
+  // ── Connections ──
+  for (let l=0; l<weights.length; l++) {
+    for (let j=0; j<weights[l].length; j++) {
+      for (let i=0; i<weights[l][j].length; i++) {
+        const w = weights[l][j][i];
+        const from = pos[l][i];
+        const to = pos[l+1][j];
+        const lw = Math.max(0.5, Math.abs(w)*5);
+
+        nctx.beginPath();
+        nctx.moveTo(from.x, from.y);
+
+        // Bezier curve
+        const cx1 = from.x+(to.x-from.x)*0.4;
+        const cx2 = from.x+(to.x-from.x)*0.6;
+        nctx.bezierCurveTo(cx1,from.y, cx2,to.y, to.x,to.y);
+
+        nctx.strokeStyle = wColor(w);
+        nctx.lineWidth = lw;
+        nctx.stroke();
+
+        // Show gradient overlay if available
+        if (grads) {
+          const gArr = l===0 ? grads.dW1 : grads.dW2;
+          const g = gArr[j][i]*grads.scale;
+          if (Math.abs(g)>0.001) {
+            const progress = 0.5;
+            const bx = from.x+(to.x-from.x)*0.5;
+            const by = from.y+(to.y-from.y)*0.5;
+            nctx.beginPath();
+            nctx.arc(bx, by, Math.min(7, Math.abs(g)*60+2), 0, Math.PI*2);
+            nctx.fillStyle = gradColor(g);
+            nctx.fill();
+          }
+        }
+      }
+    }
+  }
+
+  // ── Nodes ──
+  const inputVals = acts ? acts.x : [0.5, 0.5];
+  const hiddenActs = acts ? acts.a1 : Array(4).fill(0.5);
+  const outputActs = acts ? acts.a2 : [0.5];
+
+  const allActs = [inputVals, hiddenActs, outputActs];
+  const allDeltas = [null, net.lastDeltas1, net.lastDeltas2];
+
+  pos.forEach((col, l) => {
+    col.forEach((p, i) => {
+      const act = allActs[l][i] || 0;
+      const R = 20;
+
+      // Shadow
+      nctx.beginPath();
+      nctx.arc(p.x+2, p.y+2, R, 0, Math.PI*2);
+      nctx.fillStyle = 'rgba(0,0,0,0.08)';
+      nctx.fill();
+
+      // Node
+      nctx.beginPath();
+      nctx.arc(p.x, p.y, R, 0, Math.PI*2);
+      const intensity = Math.abs(act);
+      const nodeGrad = nctx.createRadialGradient(p.x-4,p.y-4,2,p.x,p.y,R);
+      if (l===2) {
+        // Output: color by value
+        const r = Math.floor(192+act*40), gb = Math.floor(57+act*120);
+        nodeGrad.addColorStop(0,`rgba(${r},${gb},${gb},1)`);
+        nodeGrad.addColorStop(1,`rgba(${r-20},${gb-10},${gb-10},1)`);
+      } else {
+        const v = Math.floor(240 - intensity*60);
+        nodeGrad.addColorStop(0,`rgb(${v+10},${v+5},${v-10})`);
+        nodeGrad.addColorStop(1,`rgb(${v-10},${v-15},${v-25})`);
+      }
+      nctx.fillStyle = nodeGrad;
+      nctx.fill();
+
+      // Delta ring (backprop glow)
+      if (allDeltas[l]) {
+        const d = allDeltas[l][i] || 0;
+        if (Math.abs(d)>0.001) {
+          nctx.beginPath();
+          nctx.arc(p.x, p.y, R+4, 0, Math.PI*2);
+          nctx.strokeStyle = gradColor(-d);
+          nctx.lineWidth = Math.min(5, Math.abs(d)*30+1);
+          nctx.stroke();
+        }
+      }
+
+      nctx.beginPath();
+      nctx.arc(p.x, p.y, R, 0, Math.PI*2);
+      nctx.strokeStyle = 'rgba(26,21,16,0.3)';
+      nctx.lineWidth = 1;
+      nctx.stroke();
+
+      // Value
+      nctx.font = 'bold 10px IBM Plex Mono';
+      nctx.fillStyle = l===2 ? 'white' : '#1a1510';
+      nctx.textAlign = 'center';
+      nctx.fillText(act.toFixed(2), p.x, p.y+3.5);
+
+      // Labels
+      const labels = [['x₁','x₂'],['h₁','h₂','h₃','h₄'],['ŷ']];
+      nctx.font = '9px IBM Plex Mono';
+      nctx.fillStyle = '#8a7d6e';
+      nctx.fillText(labels[l][i], p.x, p.y+R+13);
+    });
+  });
+
+  // ── Backprop flow arrow ──
+  if (net.lastDeltas2 && training) {
+    nctx.font = '700 9px IBM Plex Mono';
+    nctx.fillStyle = 'rgba(192,57,43,0.6)';
+    nctx.textAlign = 'center';
+    const p2 = pos[2][0];
+    nctx.fillText('← ∂Loss', p2.x-40, p2.y-30);
+  }
+
+  nctx.restore();
+}
+
+function drawLoss() {
+  const dpr = devicePixelRatio;
+  const W = lossCanvas.width/dpr, H = lossCanvas.height/dpr;
+  lctx.save();
+  lctx.scale(dpr,dpr);
+  lctx.clearRect(0,0,W,H);
+
+  lctx.fillStyle = '#faf6ef';
+  lctx.fillRect(0,0,W,H);
+
+  if (lossHistory.length < 2) { lctx.restore(); return; }
+
+  const pad = {l:35,r:10,t:8,b:20};
+  const cW = W-pad.l-pad.r, cH = H-pad.t-pad.b;
+
+  const maxL = Math.max(...lossHistory);
+  const minL = Math.min(...lossHistory);
+  const range = maxL-minL || 0.001;
+
+  // Grid lines
+  lctx.strokeStyle = '#d4c9b8'; lctx.lineWidth = 0.5;
+  for (let i=0; i<=4; i++) {
+    const y = pad.t + cH - (i/4)*cH;
+    lctx.beginPath(); lctx.moveTo(pad.l,y); lctx.lineTo(pad.l+cW,y); lctx.stroke();
+    lctx.font='8px IBM Plex Mono'; lctx.fillStyle='#8a7d6e'; lctx.textAlign='right';
+    lctx.fillText((minL + (i/4)*range).toFixed(3), pad.l-4, y+3);
+  }
+
+  // Loss line
+  lctx.beginPath();
+  lossHistory.forEach((v,i)=>{
+    const x = pad.l + (i/(lossHistory.length-1))*cW;
+    const y = pad.t + cH - ((v-minL)/range)*cH;
+    i===0 ? lctx.moveTo(x,y) : lctx.lineTo(x,y);
+  });
+  lctx.strokeStyle = '#c0392b'; lctx.lineWidth = 1.5;
+  lctx.stroke();
+
+  // Fill under
+  lctx.lineTo(pad.l+cW, pad.t+cH); lctx.lineTo(pad.l, pad.t+cH); lctx.closePath();
+  lctx.fillStyle='rgba(192,57,43,0.08)'; lctx.fill();
+
+  // Epoch axis
+  lctx.font='8px IBM Plex Mono'; lctx.fillStyle='#8a7d6e'; lctx.textAlign='center';
+  lctx.fillText(`Epoche ${epoch}`, pad.l+cW/2, H-3);
+
+  lctx.restore();
+}
+
+// ══════════════════════════════════════════════
+// UI UPDATES
+// ══════════════════════════════════════════════
+function updateMetrics(loss) {
+  // Accuracy
+  let correct=0;
+  dataset.X.forEach((x,i)=>{
+    const {a2} = forward(x);
+    if (Math.round(a2[0]) === dataset.y[i][0]) correct++;
+  });
+  const acc = (correct/dataset.X.length*100).toFixed(0)+'%';
+
+  document.getElementById('mLoss').textContent = loss ? loss.toFixed(4) : '—';
+  document.getElementById('mAcc').textContent = acc;
+  document.getElementById('mGrad').textContent = net.lastGradNorm ? net.lastGradNorm.toFixed(4) : '—';
+  document.getElementById('epochBadge').textContent = `Epoche ${epoch}`;
+}
+
+function updateStepExplain(loss) {
+  const gradNorm = net.lastGradNorm || 0;
+  const converging = lossHistory.length>5 &&
+    lossHistory[lossHistory.length-1] < lossHistory[lossHistory.length-5];
+
+  let status, statusColor;
+  if (gradNorm < 0.001) { status='✓ Konvergiert'; statusColor='grn'; }
+  else if (gradNorm < 0.05) { status='~ Fast da'; statusColor='hi'; }
+  else { status='∇ Lernt aktiv'; statusColor='red'; }
+
+  document.getElementById('stepExplain').innerHTML = `
+<span class="hi">① Forward Pass:</span> x → ŷ<br>
+<span class="red">② Loss: MSE = ${loss ? loss.toFixed(4) : '—'}</span><br>
+<span class="grn">③ Backprop: ∂L/∂w berechnet</span><br>
+<span class="blue">④ Update: w -= η·∂L/∂w</span><br><br>
+<span class="hi">η = ${lr.toFixed(4)} | mom = ${momentum.toFixed(2)}</span><br>
+<span class="${statusColor}">${status}</span>${converging ? ' ↓' : ''}`;
+}
+
+function updateGradDisplay() {
+  const g = net.lastGrads;
+  if (!g) return;
+  const container = document.getElementById('gradDisplay');
+  let html = '';
+  const allG = [];
+  for (let j=0; j<g.dW1.length; j++)
+    for (let i=0; i<g.dW1[j].length; i++)
+      allG.push({name:`W1[${j+1},${i+1}]`, val:g.dW1[j][i]*g.scale});
+  for (let j=0; j<g.dW2.length; j++)
+    for (let i=0; i<g.dW2[j].length; i++)
+      allG.push({name:`W2[${j+1},${i+1}]`, val:g.dW2[j][i]*g.scale});
+
+  const maxG = Math.max(...allG.map(x=>Math.abs(x.val)), 0.001);
+
+  allG.forEach(({name,val})=>{
+    const pct = (Math.abs(val)/maxG)*100;
+    const color = val<0 ? '#27ae60' : '#e74c3c';
+    const dir = val<0 ? '↓' : '↑';
+    html += `<div class="grad-item">
+      <div class="grad-header">
+        <span class="grad-name">${name}</span>
+        <span class="grad-num" style="color:${color}">${dir} ${val.toFixed(4)}</span>
+      </div>
+      <div class="grad-bar-bg">
+        <div class="grad-bar-fill" style="width:${pct}%;background:${color};left:0"></div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+// CONTROLS
+// ══════════════════════════════════════════════
+document.getElementById('lrSlider').addEventListener('input', e => {
+  lr = Math.pow(10, parseFloat(e.target.value));
+  document.getElementById('lrVal').textContent = lr.toFixed(4);
+});
+document.getElementById('momSlider').addEventListener('input', e => {
+  momentum = parseFloat(e.target.value);
+  document.getElementById('momVal').textContent = momentum.toFixed(2);
+});
+
+function setSpeed(s, el) {
+  speed = s;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  if (training) { clearInterval(trainInterval); startTraining(); }
+}
+
+function setDataset(name) {
+  currentDataset = name;
+  dataset = DATASETS[name];
+  document.querySelectorAll('.ds-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  resetNet();
+}
+
+let isTraining = false;
+function toggleTrain() {
+  isTraining = !isTraining;
+  document.getElementById('trainBtn').textContent = isTraining ? '⏸ Pause' : '▶ Trainieren';
+  if (isTraining) startTraining(); else stopTraining();
+}
+
+function startTraining() {
+  const interval = Math.max(16, Math.floor(1000/60));
+  trainInterval = setInterval(() => {
+    let loss;
+    for (let s=0; s<speed; s++) loss = trainStep();
+    drawNet(); drawLoss();
+    updateMetrics(loss);
+    updateStepExplain(loss);
+    if (epoch%3===0) updateGradDisplay();
+    if (loss < 0.001) { stopTraining(); isTraining=false; document.getElementById('trainBtn').textContent='▶ Trainieren'; }
+  }, interval);
+}
+
+function stopTraining() {
+  clearInterval(trainInterval);
+}
+
+function stepOnce() {
+  const loss = trainStep();
+  drawNet(); drawLoss();
+  updateMetrics(loss);
+  updateStepExplain(loss);
+  updateGradDisplay();
+}
+
+function resetNet() {
+  stopTraining(); isTraining=false;
+  document.getElementById('trainBtn').textContent='▶ Trainieren';
+  net = initNet(); epoch=0; lossHistory=[];
+  drawNet(); drawLoss();
+  updateMetrics(null);
+  document.getElementById('gradDisplay').innerHTML='';
+  document.getElementById('stepExplain').innerHTML=`Drücke <span class="hi">▶ Trainieren</span> oder <span class="blue">Step +1</span> um zu beginnen.<br>Das Netz lernt durch<br><span class="red">Fehler berechnen</span> →<br><span class="grn">Gradienten zurückgeben</span> →<br><span class="hi">Gewichte anpassen</span>`;
+}
+
+window.addEventListener('resize', () => { resizeCanvases(); drawNet(); drawLoss(); });
+resizeCanvases();
+drawNet();
+drawLoss();
+</script>
+
+</body>
+</html>

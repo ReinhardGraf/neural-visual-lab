@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Net – Forward Pass</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #11111a;
+    --border: #1e1e2e;
+    --accent: #7c6af7;
+    --accent2: #f76a6a;
+    --accent3: #6af7c0;
+    --text: #e0e0f0;
+    --muted: #555577;
+    --pos: #6af7c0;
+    --neg: #f76a6a;
+    --zero: #444466;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+/* Grid noise texture */
+body::before {
+content: ‘’;
+position: fixed; inset: 0;
+background-image:
+linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
+linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
+background-size: 32px 32px;
+pointer-events: none; z-index: 0;
+}
+
+header {
+padding: 24px 32px 16px;
+border-bottom: 1px solid var(–border);
+position: relative; z-index: 1;
+display: flex; align-items: baseline; gap: 16px;
+}
+header h1 {
+font-family: ‘Syne’, sans-serif;
+font-size: 22px; font-weight: 800;
+letter-spacing: -0.5px;
+color: var(–text);
+}
+header span {
+font-size: 11px; color: var(–muted);
+text-transform: uppercase; letter-spacing: 2px;
+}
+
+.layout {
+display: grid;
+grid-template-columns: 1fr 320px;
+grid-template-rows: auto auto;
+gap: 0;
+height: calc(100vh - 65px);
+position: relative; z-index: 1;
+}
+
+/* ── CANVAS ── */
+.canvas-wrap {
+grid-row: 1 / 3;
+position: relative;
+border-right: 1px solid var(–border);
+overflow: hidden;
+}
+canvas {
+width: 100%; height: 100%;
+display: block;
+}
+
+/* ── CONTROLS ── */
+.controls {
+padding: 20px;
+border-bottom: 1px solid var(–border);
+overflow-y: auto;
+}
+.section-label {
+font-size: 9px; letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–muted);
+margin-bottom: 12px;
+}
+.weight-grid {
+display: flex; flex-direction: column; gap: 8px;
+}
+.weight-item {
+display: grid;
+grid-template-columns: 1fr auto;
+align-items: center; gap: 8px;
+}
+.weight-label {
+font-size: 10px; color: var(–muted);
+}
+.weight-label b { color: var(–text); }
+.weight-val {
+font-size: 11px; font-weight: 600;
+min-width: 42px; text-align: right;
+}
+input[type=range] {
+-webkit-appearance: none;
+width: 100%; height: 3px;
+background: var(–border);
+border-radius: 2px; outline: none;
+margin: 3px 0;
+grid-column: 1 / 3;
+}
+input[type=range]::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 14px; height: 14px;
+border-radius: 50%;
+background: var(–accent);
+cursor: pointer;
+box-shadow: 0 0 6px rgba(124,106,247,0.6);
+transition: box-shadow 0.2s;
+}
+input[type=range]:hover::-webkit-slider-thumb {
+box-shadow: 0 0 12px rgba(124,106,247,0.9);
+}
+
+.divider { height: 1px; background: var(–border); margin: 14px 0; }
+
+/* ── OUTPUT PANEL ── */
+.output-panel {
+padding: 20px;
+display: flex; flex-direction: column; gap: 12px;
+}
+.activation-eq {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 12px;
+font-size: 10px; line-height: 1.8;
+color: var(–muted);
+}
+.activation-eq .step { color: var(–text); }
+.activation-eq .highlight { color: var(–accent); font-weight: 600; }
+.activation-eq .pos { color: var(–pos); }
+.activation-eq .neg { color: var(–neg); }
+
+.output-bars {
+display: flex; flex-direction: column; gap: 6px;
+}
+.output-row {
+display: grid;
+grid-template-columns: 60px 1fr 48px;
+align-items: center; gap: 8px;
+}
+.output-row label { font-size: 10px; color: var(–muted); }
+.bar-bg {
+height: 12px; background: var(–border);
+border-radius: 2px; overflow: hidden;
+}
+.bar-fill {
+height: 100%;
+border-radius: 2px;
+transition: width 0.25s ease, background 0.25s;
+}
+.output-row .val {
+font-size: 11px; font-weight: 600; text-align: right;
+}
+
+.reset-btn {
+margin-top: 4px;
+background: none;
+border: 1px solid var(–border);
+color: var(–muted);
+font-family: ‘JetBrains Mono’, monospace;
+font-size: 10px;
+letter-spacing: 2px;
+text-transform: uppercase;
+padding: 7px 14px;
+border-radius: 4px;
+cursor: pointer;
+transition: border-color 0.2s, color 0.2s;
+width: 100%;
+}
+.reset-btn:hover {
+border-color: var(–accent);
+color: var(–accent);
+}
+
+.tooltip {
+position: fixed;
+background: rgba(10,10,20,0.95);
+border: 1px solid var(–accent);
+border-radius: 5px;
+padding: 6px 10px;
+font-size: 10px; color: var(–text);
+pointer-events: none;
+z-index: 100;
+opacity: 0;
+transition: opacity 0.15s;
+}
+.tooltip.visible { opacity: 1; }
+
+/* Pulse animation for active nodes */
+@keyframes pulse {
+0%,100% { opacity:1; } 50% { opacity:0.5; }
+}
+.pulse { animation: pulse 1.2s ease infinite; }
+
+/* highlight selected weight */
+.weight-item.selected .weight-label b { color: var(–accent); }
+</style>
+
+</head>
+<body>
+
+<header>
+  <h1>Neural Network</h1>
+  <span>Forward Pass Visualizer</span>
+</header>
+
+<div class="layout">
+  <div class="canvas-wrap">
+    <canvas id="net"></canvas>
+  </div>
+
+  <div class="controls">
+    <div class="section-label">Weights &amp; Biases</div>
+    <div class="weight-grid" id="sliders"></div>
+    <div style="margin-top:12px">
+      <button class="reset-btn" onclick="resetWeights()">↺ Reset auf Defaults</button>
+    </div>
+  </div>
+
+  <div class="output-panel">
+    <div class="section-label">Forward Pass — Schritt für Schritt</div>
+    <div class="activation-eq" id="eq">Berechnung...</div>
+    <div class="divider"></div>
+    <div class="section-label">Output Aktivierungen (Sigmoid)</div>
+    <div class="output-bars" id="outbars"></div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ──────────────────────────────────────────────
+// NETWORK STRUCTURE
+// Input: 3, Hidden: 4, Output: 2
+// ──────────────────────────────────────────────
+
+const STRUCTURE = [3, 4, 2];
+const INPUTS = [0.8, 0.5, 0.3]; // fixed input values
+
+// Default weights & biases
+function defaultWeights() {
+  return {
+    // w[layer][to][from]
+    w: [
+      // Layer 0→1: 4 hidden × 3 inputs
+      [[ 0.5,-0.3, 0.8],[ 0.2, 0.9,-0.4],[-0.6, 0.1, 0.7],[ 0.3,-0.8, 0.2]],
+      // Layer 1→2: 2 outputs × 4 hidden
+      [[ 0.7,-0.5, 0.4,-0.2],[-0.3, 0.6,-0.7, 0.5]]
+    ],
+    b: [
+      [0.1, -0.2, 0.3, -0.1],  // hidden biases
+      [0.2, -0.1]               // output biases
+    ]
+  };
+}
+
+let net = defaultWeights();
+
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+function relu(x) { return Math.max(0, x); }
+
+// Forward pass → returns {z, a} for each layer
+function forward(inputs) {
+  let layers = [{ a: inputs }];
+  let current = inputs;
+  for (let l = 0; l < net.w.length; l++) {
+    let z = [], a = [];
+    for (let j = 0; j < net.w[l].length; j++) {
+      let sum = net.b[l][j];
+      for (let i = 0; i < current.length; i++) sum += net.w[l][j][i] * current[i];
+      z.push(sum);
+      // Hidden: ReLU, Output: Sigmoid
+      a.push(l === net.w.length - 1 ? sigmoid(sum) : relu(sum));
+    }
+    layers.push({ z, a });
+    current = a;
+  }
+  return layers;
+}
+
+// ──────────────────────────────────────────────
+// CANVAS DRAWING
+// ──────────────────────────────────────────────
+const canvas = document.getElementById('net');
+const ctx = canvas.getContext('2d');
+
+let hoveredWeight = null;
+let selectedWeight = null;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  draw();
+}
+
+function nodePositions() {
+  const W = canvas.width / devicePixelRatio;
+  const H = canvas.height / devicePixelRatio;
+  const padX = 80, padY = 60;
+  const cols = STRUCTURE.length;
+  const xStep = (W - padX * 2) / (cols - 1);
+  const positions = [];
+  for (let l = 0; l < cols; l++) {
+    const n = STRUCTURE[l];
+    const colPos = [];
+    const yStep = (H - padY * 2) / (n - 1 || 1);
+    for (let i = 0; i < n; i++) {
+      const x = padX + l * xStep;
+      const y = n === 1 ? H / 2 : padY + i * yStep;
+      colPos.push({ x, y });
+    }
+    positions.push(colPos);
+  }
+  return positions;
+}
+
+function weightColor(w) {
+  if (Math.abs(w) < 0.05) return `rgba(68,68,102,0.4)`;
+  if (w > 0) {
+    const a = Math.min(0.9, 0.2 + Math.abs(w) * 0.7);
+    return `rgba(106,247,192,${a})`;
+  } else {
+    const a = Math.min(0.9, 0.2 + Math.abs(w) * 0.7);
+    return `rgba(247,106,106,${a})`;
+  }
+}
+
+function draw() {
+  const layers = forward(INPUTS);
+  const pos = nodePositions();
+  const W = canvas.width / devicePixelRatio;
+  const H = canvas.height / devicePixelRatio;
+  const dpr = devicePixelRatio;
+
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  // ── Draw connections ──
+  for (let l = 0; l < net.w.length; l++) {
+    for (let j = 0; j < net.w[l].length; j++) {
+      for (let i = 0; i < net.w[l][j].length; i++) {
+        const w = net.w[l][j][i];
+        const from = pos[l][i];
+        const to = pos[l + 1][j];
+        const isHov = hoveredWeight &&
+          hoveredWeight.l===l && hoveredWeight.j===j && hoveredWeight.i===i;
+        const isSel = selectedWeight &&
+          selectedWeight.l===l && selectedWeight.j===j && selectedWeight.i===i;
+
+        const lineW = Math.max(0.5, Math.abs(w) * 5);
+        const color = weightColor(w);
+
+        ctx.beginPath();
+        ctx.strokeStyle = isHov || isSel
+          ? `rgba(124,106,247,${isHov?0.95:0.8})`
+          : color;
+        ctx.lineWidth = isHov || isSel ? lineW + 2 : lineW;
+        ctx.globalAlpha = 1;
+
+        // Flowing signal animation
+        const grad = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+        if (isHov || isSel) {
+          grad.addColorStop(0, 'rgba(124,106,247,0.3)');
+          grad.addColorStop(0.5, 'rgba(124,106,247,0.9)');
+          grad.addColorStop(1, 'rgba(124,106,247,0.3)');
+          ctx.strokeStyle = grad;
+        } else {
+          const baseColor = w > 0 ? '106,247,192' : '247,106,106';
+          const a0 = Math.min(0.6, 0.1 + Math.abs(w) * 0.5);
+          const a1 = Math.min(0.9, 0.2 + Math.abs(w) * 0.7);
+          grad.addColorStop(0, `rgba(${baseColor},${a0})`);
+          grad.addColorStop(0.5, `rgba(${baseColor},${a1})`);
+          grad.addColorStop(1, `rgba(${baseColor},${a0})`);
+          ctx.strokeStyle = grad;
+        }
+
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ── Draw nodes ──
+  const layerLabels = ['Input', 'Hidden', 'Output'];
+  const nodeR = 22;
+
+  for (let l = 0; l < STRUCTURE.length; l++) {
+    // Layer label
+    const midY = pos[l].reduce((s, p) => s + p.y, 0) / pos[l].length;
+    ctx.fillStyle = 'rgba(85,85,119,0.8)';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(layerLabels[l].toUpperCase(), pos[l][0].x, midY - (STRUCTURE[l] * 35) / 2 - 18);
+
+    for (let i = 0; i < STRUCTURE[l]; i++) {
+      const {x, y} = pos[l][i];
+      const act = layers[l].a[i];
+
+      // Glow
+      const glowR = nodeR * 1.8;
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+      const alpha = 0.05 + act * 0.2;
+      glow.addColorStop(0, `rgba(124,106,247,${alpha})`);
+      glow.addColorStop(1, 'rgba(124,106,247,0)');
+      ctx.beginPath();
+      ctx.arc(x, y, glowR, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Node circle
+      ctx.beginPath();
+      ctx.arc(x, y, nodeR, 0, Math.PI * 2);
+      const nodeGrad = ctx.createRadialGradient(x - 4, y - 4, 2, x, y, nodeR);
+      const brightness = Math.floor(act * 180);
+      nodeGrad.addColorStop(0, `rgb(${40+brightness/3},${35+brightness/3},${60+brightness/2})`);
+      nodeGrad.addColorStop(1, `rgb(${15+brightness/4},${12+brightness/4},${25+brightness/4})`);
+      ctx.fillStyle = nodeGrad;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(124,106,247,${0.3 + act * 0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Activation value
+      ctx.fillStyle = `rgba(220,220,240,${0.5 + act * 0.5})`;
+      ctx.font = `bold 10px JetBrains Mono`;
+      ctx.textAlign = 'center';
+      ctx.fillText(act.toFixed(2), x, y + 3.5);
+
+      // Node label (xᵢ, hⱼ, oₖ)
+      const subscripts = [['x₁','x₂','x₃'],['h₁','h₂','h₃','h₄'],['o₁','o₂']];
+      ctx.fillStyle = 'rgba(100,100,140,0.9)';
+      ctx.font = '9px JetBrains Mono';
+      ctx.fillText(subscripts[l][i], x, y + nodeR + 13);
+
+      // Bias label for hidden + output
+      if (l > 0) {
+        const bVal = net.b[l-1][i];
+        ctx.fillStyle = bVal >= 0 ? 'rgba(106,247,192,0.6)' : 'rgba(247,106,106,0.6)';
+        ctx.font = '8px JetBrains Mono';
+        ctx.fillText(`b:${bVal.toFixed(1)}`, x, y - nodeR - 6);
+      }
+    }
+  }
+
+  ctx.restore();
+  updateUI(layers);
+}
+
+// ──────────────────────────────────────────────
+// UI: SLIDERS
+// ──────────────────────────────────────────────
+function buildSliders() {
+  const container = document.getElementById('sliders');
+  container.innerHTML = '';
+
+  const addSlider = (label, val, onChange, key) => {
+    const div = document.createElement('div');
+    div.className = 'weight-item';
+    div.id = key;
+    div.innerHTML = `
+      <div class="weight-label">${label}</div>
+      <div class="weight-val" id="v_${key}">${val.toFixed(2)}</div>
+      <input type="range" min="-1" max="1" step="0.01" value="${val}" id="r_${key}">
+    `;
+    div.querySelector('input').addEventListener('input', e => {
+      onChange(parseFloat(e.target.value));
+      document.getElementById('v_' + key).textContent = parseFloat(e.target.value).toFixed(2);
+      draw();
+    });
+    container.appendChild(div);
+  };
+
+  // Hidden biases
+  const bLabel = ['b', 'i', 'a', 's'];
+  for (let j = 0; j < 4; j++) {
+    addSlider(`<b>b_h${j+1}</b> Bias Hidden ${j+1}`,
+      net.b[0][j], v => { net.b[0][j] = v; }, `bh${j}`);
+  }
+
+  const div = document.createElement('div');
+  div.className = 'divider';
+  container.appendChild(div);
+
+  // Output biases
+  for (let j = 0; j < 2; j++) {
+    addSlider(`<b>b_o${j+1}</b> Bias Output ${j+1}`,
+      net.b[1][j], v => { net.b[1][j] = v; }, `bo${j}`);
+  }
+
+  const div2 = document.createElement('div');
+  div2.className = 'divider';
+  container.appendChild(div2);
+
+  // Select weights on canvas hover
+  container.insertAdjacentHTML('beforeend',
+    `<div class="section-label" style="margin-top:4px">— Gewichte (Hover auf Canvas)</div>
+     <div id="hovered-weight" style="font-size:10px;color:var(--muted);margin-top:4px">
+       Bewege die Maus über eine Verbindung…
+     </div>`);
+}
+
+function updateSliderForWeight(l, j, i) {
+  // Find or create a temporary slider
+  const key = `w_${l}_${j}_${i}`;
+  let existing = document.getElementById(key);
+  const val = net.w[l][j][i];
+
+  const lNames = ['Input→Hidden', 'Hidden→Output'];
+  const fromNames = [['x₁','x₂','x₃'],['h₁','h₂','h₃','h₄']];
+  const toNames = [['h₁','h₂','h₃','h₄'],['o₁','o₂']];
+  const label = `<b>w</b> ${fromNames[l][i]}→${toNames[l][j]}`;
+
+  const hwDiv = document.getElementById('hovered-weight');
+  hwDiv.innerHTML = `
+    <div style="margin-bottom:6px;color:var(--text)">${label} <span style="color:var(--accent)">${val.toFixed(2)}</span></div>
+    <input type="range" min="-1" max="1" step="0.01" value="${val}" id="temp_weight_slider"
+      style="-webkit-appearance:none;width:100%;height:3px;background:var(--border);border-radius:2px;outline:none">
+  `;
+  const slider = hwDiv.querySelector('input');
+  slider.addEventListener('input', e => {
+    net.w[l][j][i] = parseFloat(e.target.value);
+    hwDiv.querySelector('span').textContent = parseFloat(e.target.value).toFixed(2);
+    draw();
+  });
+  // Style thumb
+  slider.style.cssText += ``;
+}
+
+// ──────────────────────────────────────────────
+// UI: OUTPUT EQUATIONS + BARS
+// ──────────────────────────────────────────────
+function updateUI(layers) {
+  const eq = document.getElementById('eq');
+  const barContainer = document.getElementById('outbars');
+
+  // Show step-by-step for h₁ and o₁
+  const z_h1 = layers[1].z[0];
+  const a_h1 = layers[1].a[0];
+  const z_o1 = layers[2].z[0];
+  const a_o1 = layers[2].a[0];
+
+  eq.innerHTML = `
+<div class="step">① <span style="color:var(--muted)">Hidden h₁ (Voraktivierung):</span></div>
+<div>z<sub>h1</sub> = Σ wᵢ·xᵢ + b = <span class="${z_h1>=0?'pos':'neg'}">${z_h1.toFixed(3)}</span></div>
+<div>→ ReLU(<span class="${z_h1>=0?'pos':'neg'}">${z_h1.toFixed(3)}</span>) = <span class="highlight">${a_h1.toFixed(3)}</span></div>
+<br>
+<div class="step">② <span style="color:var(--muted)">Output o₁ (Voraktivierung):</span></div>
+<div>z<sub>o1</sub> = Σ wⱼ·hⱼ + b = <span class="${z_o1>=0?'pos':'neg'}">${z_o1.toFixed(3)}</span></div>
+<div>→ σ(<span class="${z_o1>=0?'pos':'neg'}">${z_o1.toFixed(3)}</span>) = <span class="highlight">${a_o1.toFixed(3)}</span></div>
+<br>
+<div class="step">③ <span style="color:var(--muted)">Eingaben x:</span>
+  x₁=<span class="pos">${INPUTS[0]}</span>
+  x₂=<span class="pos">${INPUTS[1]}</span>
+  x₃=<span class="pos">${INPUTS[2]}</span>
+</div>`;
+
+  // Output bars
+  barContainer.innerHTML = '';
+  const outputs = layers[2].a;
+  const names = ['Output o₁', 'Output o₂'];
+  outputs.forEach((v, i) => {
+    const pct = (v * 100).toFixed(1);
+    const color = v > 0.5 ? 'var(--pos)' : v > 0.3 ? 'var(--accent)' : 'var(--neg)';
+    barContainer.innerHTML += `
+      <div class="output-row">
+        <label>${names[i]}</label>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <span class="val" style="color:${color}">${v.toFixed(3)}</span>
+      </div>`;
+  });
+}
+
+// ──────────────────────────────────────────────
+// MOUSE: Hover over connections
+// ──────────────────────────────────────────────
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const pos = nodePositions();
+  const tooltip = document.getElementById('tooltip');
+
+  let found = null;
+  const threshold = 8;
+
+  outer:
+  for (let l = 0; l < net.w.length; l++) {
+    for (let j = 0; j < net.w[l].length; j++) {
+      for (let i = 0; i < net.w[l][j].length; i++) {
+        const from = pos[l][i];
+        const to = pos[l+1][j];
+        // Distance from point to line segment
+        const dx = to.x - from.x, dy = to.y - from.y;
+        const len2 = dx*dx + dy*dy;
+        const t = Math.max(0, Math.min(1, ((mx-from.x)*dx + (my-from.y)*dy) / len2));
+        const px = from.x + t*dx - mx, py = from.y + t*dy - my;
+        if (Math.sqrt(px*px + py*py) < threshold) {
+          found = {l, j, i};
+          break outer;
+        }
+      }
+    }
+  }
+
+  if (found) {
+    const w = net.w[found.l][found.j][found.i];
+    const fromNames = [['x₁','x₂','x₃'],['h₁','h₂','h₃','h₄']];
+    const toNames = [['h₁','h₂','h₃','h₄'],['o₁','o₂']];
+    tooltip.className = 'tooltip visible';
+    tooltip.style.left = (e.clientX + 12) + 'px';
+    tooltip.style.top = (e.clientY - 8) + 'px';
+    tooltip.innerHTML = `${fromNames[found.l][found.i]} → ${toNames[found.l][found.j]}<br><b style="color:${w>=0?'#6af7c0':'#f76a6a'}">${w.toFixed(3)}</b>`;
+    canvas.style.cursor = 'pointer';
+    if (!hoveredWeight || hoveredWeight.l!==found.l || hoveredWeight.j!==found.j || hoveredWeight.i!==found.i) {
+      hoveredWeight = found;
+      updateSliderForWeight(found.l, found.j, found.i);
+      draw();
+    }
+  } else {
+    tooltip.className = 'tooltip';
+    canvas.style.cursor = 'default';
+    if (hoveredWeight) { hoveredWeight = null; draw(); }
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  document.getElementById('tooltip').className = 'tooltip';
+  hoveredWeight = null;
+  draw();
+});
+
+// ──────────────────────────────────────────────
+// RESET
+// ──────────────────────────────────────────────
+function resetWeights() {
+  net = defaultWeights();
+  buildSliders();
+  draw();
+}
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+buildSliders();
+draw();
+</script>
+
+</body>
+</html>
