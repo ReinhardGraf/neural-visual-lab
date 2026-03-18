@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotkäppchen -- Neuronales Netz</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #1a0a08;
+  --bg2:      #220e0a;
+  --panel:    #2a1209;
+  --border:   #4a2015;
+  --red:      #e8382a;
+  --gold:     #f0a830;
+  --green:    #4caf72;
+  --blue:     #5ab4d4;
+  --purple:   #9b6fd4;
+  --wolf:     #8a9aaa;
+  --text:     #f0e8d8;
+  --muted:    #7a5a4a;
+  --bright:   #fff8f0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Crimson Pro',serif;
+  min-height:100vh;
+  overflow:hidden;
+}
+
+/* Forest texture */
+body::before{
+content:’’;
+position:fixed;inset:0;
+background:
+radial-gradient(ellipse at 15% 30%, rgba(232,56,42,0.06) 0%, transparent 40%),
+radial-gradient(ellipse at 85% 70%, rgba(76,175,114,0.05) 0%, transparent 40%),
+radial-gradient(ellipse at 50% 100%, rgba(138,154,170,0.04) 0%, transparent 30%);
+pointer-events:none;z-index:0;
+}
+
+/* ── HEADER ── */
+header{
+display:flex;align-items:center;gap:14px;
+padding:12px 24px;
+background:rgba(34,14,10,0.97);
+border-bottom:1px solid var(–border);
+position:relative;z-index:10;
+}
+header h1{
+font-family:‘Playfair Display’,serif;
+font-size:20px;font-weight:900;
+color:var(–red);
+letter-spacing:1px;
+}
+header .sub{
+font-family:‘Space Mono’,monospace;
+font-size:8px;letter-spacing:2px;
+color:var(–muted);text-transform:uppercase;
+}
+.scene-indicator{
+margin-left:auto;
+font-family:‘Space Mono’,monospace;
+font-size:9px;letter-spacing:1px;
+color:var(–gold);
+background:rgba(240,168,48,0.1);
+border:1px solid rgba(240,168,48,0.3);
+padding:4px 12px;border-radius:2px;
+}
+
+/* ── LAYOUT ── */
+.app{
+display:grid;
+grid-template-columns:1fr 320px;
+height:calc(100vh - 50px);
+position:relative;z-index:1;
+}
+
+/* ── STAGE ── */
+.stage{
+position:relative;overflow:hidden;
+border-right:1px solid var(–border);
+}
+#netCanvas{display:block;width:100%;height:100%;}
+
+/* Story overlay top */
+.story-box{
+position:absolute;top:16px;left:50%;transform:translateX(-50%);
+max-width:520px;width:90%;
+background:rgba(26,10,8,0.93);
+border:1px solid var(–border);
+border-radius:4px;
+padding:12px 18px;
+backdrop-filter:blur(8px);
+z-index:5;
+text-align:center;
+}
+.story-scene{
+font-family:‘Playfair Display’,serif;
+font-size:11px;letter-spacing:3px;
+text-transform:uppercase;
+color:var(–muted);
+margin-bottom:4px;
+}
+.story-text{
+font-family:‘Crimson Pro’,serif;
+font-size:15px;
+color:var(–text);
+font-style:italic;
+line-height:1.5;
+}
+.story-text .highlight{color:var(–red);font-style:normal;font-weight:600;}
+
+/* Scene navigation */
+.scene-nav{
+position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+display:flex;gap:8px;align-items:center;
+z-index:5;
+}
+.nav-btn{
+padding:7px 18px;
+font-family:‘Space Mono’,monospace;
+font-size:9px;letter-spacing:2px;
+text-transform:uppercase;
+border-radius:3px;
+cursor:pointer;
+transition:all .15s;
+border:1px solid var(–border);
+background:rgba(26,10,8,0.9);
+color:var(–muted);
+}
+.nav-btn:hover{border-color:var(–gold);color:var(–gold);}
+.nav-btn.primary{
+background:rgba(232,56,42,0.15);
+border-color:var(–red);color:var(–red);
+}
+.nav-btn.primary:hover{background:rgba(232,56,42,0.25);}
+
+.scene-dots{
+display:flex;gap:6px;
+}
+.dot{
+width:6px;height:6px;border-radius:50%;
+background:var(–border);
+cursor:pointer;transition:all .2s;
+}
+.dot.active{background:var(–red);box-shadow:0 0 6px var(–red);}
+
+/* ── RIGHT PANEL ── */
+.panel{
+background:var(–bg2);
+display:flex;flex-direction:column;
+overflow:hidden;
+}
+.p-section{
+padding:14px 16px;
+border-bottom:1px solid var(–border);
+}
+.p-title{
+font-family:‘Space Mono’,monospace;
+font-size:8px;letter-spacing:3px;
+text-transform:uppercase;color:var(–muted);
+margin-bottom:10px;
+}
+
+/* Input toggles */
+.feature-grid{
+display:grid;grid-template-columns:1fr 1fr;
+gap:6px;
+}
+.feature-btn{
+padding:8px 8px;
+font-family:‘Crimson Pro’,serif;
+font-size:12px;
+border:1px solid var(–border);
+border-radius:3px;cursor:pointer;
+background:var(–panel);color:var(–muted);
+transition:all .2s;text-align:center;
+line-height:1.3;
+}
+.feature-btn:hover{border-color:var(–muted);}
+.feature-btn.on{
+color:var(–bright);
+box-shadow:0 0 8px currentColor;
+}
+
+/* Activation bars */
+.neuron-list{display:flex;flex-direction:column;gap:6px;}
+.neuron-row{
+display:grid;grid-template-columns:120px 1fr 38px;
+align-items:center;gap:8px;
+}
+.neuron-label{
+font-family:‘Crimson Pro’,serif;
+font-size:11px;color:var(–muted);
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.neuron-label .emoji{margin-right:4px;}
+.bar-bg{height:7px;background:var(–border);border-radius:1px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:1px;transition:width .4s ease,background .4s;}
+.bar-val{
+font-family:‘Space Mono’,monospace;
+font-size:9px;text-align:right;
+}
+
+/* Decision box */
+.decision-box{
+margin-top:2px;
+padding:12px;
+border-radius:3px;
+border:1px solid;
+text-align:center;
+transition:all .4s;
+}
+.decision-label{
+font-family:‘Playfair Display’,serif;
+font-size:18px;font-weight:700;
+margin-bottom:4px;
+}
+.decision-sub{
+font-family:‘Crimson Pro’,serif;
+font-size:11px;font-style:italic;
+}
+
+/* Explanation */
+.explain-scroll{
+flex:1;overflow-y:auto;
+padding:14px 16px;
+}
+.explain-card{
+background:var(–panel);
+border:1px solid var(–border);
+border-radius:4px;
+padding:12px 14px;
+margin-bottom:10px;
+font-family:‘Crimson Pro’,serif;
+font-size:12px;line-height:1.7;
+}
+.explain-card .card-title{
+font-family:‘Space Mono’,monospace;
+font-size:8px;letter-spacing:2px;
+text-transform:uppercase;
+color:var(–muted);margin-bottom:6px;
+}
+.explain-card .hi{color:var(–gold);font-weight:600;}
+.explain-card .red{color:var(–red);}
+.explain-card .grn{color:var(–green);}
+.explain-card .blue{color:var(–blue);}
+
+/* Scrollbar */
+.explain-scroll::-webkit-scrollbar{width:3px;}
+.explain-scroll::-webkit-scrollbar-track{background:var(–bg2);}
+.explain-scroll::-webkit-scrollbar-thumb{background:var(–border);}
+</style>
+
+</head>
+<body>
+
+<header>
+  <h1>🔴 Rotkäppchen</h1>
+  <span class="sub">Neuronales Netz lernt Gefahr erkennen</span>
+  <div class="scene-indicator" id="sceneIndicator">Szene 1 / 6</div>
+</header>
+
+<div class="app">
+  <div class="stage">
+    <canvas id="netCanvas"></canvas>
+
+```
+<div class="story-box">
+  <div class="story-scene" id="storyScene">Prolog</div>
+  <div class="story-text" id="storyText">Lade Geschichte...</div>
+</div>
+
+<div class="scene-nav">
+  <button class="nav-btn" onclick="prevScene()">← Zurück</button>
+  <div class="scene-dots" id="sceneDots"></div>
+  <button class="nav-btn primary" onclick="nextScene()">Weiter →</button>
+</div>
+```
+
+  </div>
+
+  <div class="panel">
+    <div class="p-section">
+      <div class="p-title">Eingabe -- Was nimmt das Netz wahr?</div>
+      <div class="feature-grid" id="featureGrid"></div>
+    </div>
+
+```
+<div class="p-section">
+  <div class="p-title">Versteckte Schicht -- Muster</div>
+  <div class="neuron-list" id="hiddenList"></div>
+</div>
+
+<div class="p-section">
+  <div class="p-title">Output -- Entscheidung</div>
+  <div class="decision-box" id="decisionBox">
+    <div class="decision-label" id="decisionLabel">--</div>
+    <div class="decision-sub" id="decisionSub">Kein Signal</div>
+  </div>
+</div>
+
+<div class="explain-scroll" id="explainScroll"></div>
+```
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// STORY SCENES
+// ══════════════════════════════════════════════
+const SCENES = [
+  {
+    name: 'Der Wald',
+    text: 'Rotkäppchen geht allein durch den <highlight>dunklen Wald</highlight> zur Großmutter. Das Netz hat noch keine Erfahrung -- alle Gewichte sind zufällig.',
+    features: { gross_zaehne: 0, freundlich: 1, bekannt: 1, allein: 1, tierstimme: 0, geschenke: 1 },
+    explanation: `<div class="card-title">Initialisierung</div>
+Das Netz startet mit <span class="hi">zufälligen Gewichten</span>. Es weiß noch nichts über Gefahr -- wie ein Kleinkind, das zum ersten Mal den Wald betritt.<br><br>
+<span class="blue">Eingaben:</span> Rotkäppchen ist <span class="grn">bekannt</span>, <span class="grn">freundlich</span>, trägt <span class="grn">Geschenke</span> -- aber ist <span class="red">allein</span>.`,
+    highlightNeuron: null
+  },
+  {
+    name: 'Begegnung mit dem Wolf',
+    text: 'Ein großes Tier mit <highlight>langen Zähnen</highlight> spricht Rotkäppchen an. Es klingt freundlich -- aber etwas ist seltsam.',
+    features: { gross_zaehne: 1, freundlich: 1, bekannt: 0, allein: 1, tierstimme: 1, geschenke: 0 },
+    explanation: `<div class="card-title">Widersprüchliche Signale</div>
+Das Netz empfängt <span class="hi">gemischte Signale</span>: Freundliche Stimme <span class="grn">↑</span> aber große Zähne <span class="red">↑</span> und unbekannte Stimme <span class="red">↑</span>.<br><br>
+<span class="blue">Hidden Layer:</span> Das Muster "Freundlich + Gefährlich" aktiviert das Gefahren-Neuron <span class="red">stark</span>. Wölfe sind oft täuschend freundlich!`,
+    highlightNeuron: 0
+  },
+  {
+    name: 'Der Wolf fragt nach dem Weg',
+    text: 'Der Wolf fragt nach der Großmutter. Er lächelt -- aber seine <highlight>Tierstimme</highlight> verrät ihn. Rotkäppchen ist noch <highlight>allein</highlight>.',
+    features: { gross_zaehne: 1, freundlich: 1, bekannt: 0, allein: 1, tierstimme: 1, geschenke: 0 },
+    explanation: `<div class="card-title">Muster-Erkennung</div>
+Das Hidden-Neuron <span class="hi">"Täuschung"</span> feuert jetzt sehr stark -- es hat gelernt: wenn jemand freundlich klingt, aber <span class="red">unbekannt + Tierstimme</span> kombiniert, ist das gefährlich.<br><br>
+<span class="blue">Forward Pass:</span> Input → Gewichte × Aktivierung → Summe → ReLU → Output`,
+    highlightNeuron: 1
+  },
+  {
+    name: 'Bei der Großmutter -- der Wolf im Bett',
+    text: 'Rotkäppchen kommt an. Aber die Großmutter hat <highlight>was für große Zähne</highlight>! Und eine seltsame <highlight>tiefe Stimme</highlight>...',
+    features: { gross_zaehne: 1, freundlich: 1, bekannt: 1, allein: 1, tierstimme: 1, geschenke: 0 },
+    explanation: `<div class="card-title">Höchste Gefahr!</div>
+Alle Gefahren-Merkmale aktiv: <span class="red">Zähne ✓ Tierstimme ✓ Allein ✓</span><br><br>
+Aber auch: <span class="grn">Bekannt ✓ Freundlich ✓</span> -- der Wolf tarnt sich!<br><br>
+Das Netz gibt maximalen <span class="red">Alarm</span> aus. Der Output-Wert nähert sich 1.0 -- <span class="hi">höchste Gefahrenstufe</span>.`,
+    highlightNeuron: 2
+  },
+  {
+    name: 'Der Jäger kommt!',
+    text: 'Der <highlight>Jäger</highlight> erscheint -- bekannt, freundlich, keine Tierstimme. Das Netz erkennt: das ist <highlight>kein Feind</highlight>.',
+    features: { gross_zaehne: 0, freundlich: 1, bekannt: 1, allein: 0, tierstimme: 0, geschenke: 0 },
+    explanation: `<div class="card-title">Sicheres Signal</div>
+Alle Gefahren-Merkmale aus: <span class="grn">Keine Zähne ✓ Bekannt ✓ Nicht allein ✓ Keine Tierstimme ✓</span><br><br>
+Das Netz gibt <span class="grn">grünes Licht</span>. Output nähert sich 0.0 -- <span class="hi">sicher</span>.<br><br>
+So unterscheidet das Netz: gleiche Merkmale wie Rotkäppchen → vertrauen, wie Wolf → warnen.`,
+    highlightNeuron: null
+  },
+  {
+    name: 'Und sie lebten glücklich...',
+    text: 'Das Netz hat gelernt: <highlight>Gefahr ≠ Aussehen</highlight>. Es geht um Muster -- Zähne + Tierstimme + unbekannt = Wolf. Vertrauen braucht mehr als ein Lächeln.',
+    features: { gross_zaehne: 0, freundlich: 1, bekannt: 1, allein: 0, tierstimme: 0, geschenke: 1 },
+    explanation: `<div class="card-title">Was das Netz gelernt hat</div>
+Das Märchen ist eine perfekte <span class="hi">Trainingsgeschichte</span> für ein neuronales Netz:<br><br>
+<span class="blue">Positives Beispiel:</span> Jäger, Großmutter → sicher<br>
+<span class="red">Negatives Beispiel:</span> Wolf (als Großmutter getarnt) → gefährlich<br><br>
+Das Netz lernt die <span class="hi">versteckten Muster</span>, nicht die Oberfläche. Genau wie echte neuronale Netze in der Praxis.`,
+    highlightNeuron: null
+  }
+];
+
+const FEATURES = [
+  {key:'gross_zaehne', label:'Große Zähne', emoji:'🦷', color:'var(--red)'},
+  {key:'freundlich',   label:'Freundlich',  emoji:'😊', color:'var(--green)'},
+  {key:'bekannt',      label:'Bekannt',     emoji:'👵', color:'var(--blue)'},
+  {key:'allein',       label:'Allein',      emoji:'🌲', color:'var(--wolf)'},
+  {key:'tierstimme',   label:'Tierstimme',  emoji:'🐺', color:'var(--red)'},
+  {key:'geschenke',    label:'Geschenke',   emoji:'🧺', color:'var(--gold)'},
+];
+
+const HIDDEN = [
+  {label:'🚨 Gefahren-Muster',  weights:{gross_zaehne:0.9,freundlich:-0.3,bekannt:-0.7,allein:0.6,tierstimme:0.85,geschenke:-0.4}},
+  {label:'🎭 Täuschungs-Muster',weights:{gross_zaehne:0.6,freundlich:0.7,bekannt:-0.8,allein:0.5,tierstimme:0.7,geschenke:-0.3}},
+  {label:'🤝 Vertrauens-Muster', weights:{gross_zaehne:-0.8,freundlich:0.9,bekannt:0.95,allein:-0.5,tierstimme:-0.7,geschenke:0.6}},
+  {label:'😰 Allein-Muster',     weights:{gross_zaehne:0.4,freundlich:-0.1,bekannt:-0.3,allein:0.95,tierstimme:0.3,geschenke:-0.2}},
+];
+
+const OUTPUT_WEIGHTS = [0.75, 0.65, -0.85, 0.45]; // hidden → output
+
+let currentScene = 0;
+let inputs = {};
+let manualOverride = false;
+
+// ── Math ──
+function relu(x){ return Math.max(0, x); }
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+
+function computeNetwork(inp) {
+  const inputVals = FEATURES.map(f => inp[f.key] || 0);
+  // Hidden
+  const hiddenZ = HIDDEN.map(h =>
+    FEATURES.reduce((s,f,i) => s + (h.weights[f.key]||0)*inputVals[i], 0)
+  );
+  const hiddenA = hiddenZ.map(relu);
+  // Output (danger score)
+  const outZ = OUTPUT_WEIGHTS.reduce((s,w,i) => s + w*hiddenA[i], 0);
+  const outA = sigmoid(outZ);
+  return { inputVals, hiddenZ, hiddenA, outA };
+}
+
+// ══════════════════════════════════════════════
+// CANVAS
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('netCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  canvas.width = r.width * devicePixelRatio;
+  canvas.height = r.height * devicePixelRatio;
+  canvas.style.width = r.width+'px';
+  canvas.style.height = r.height+'px';
+  drawNet();
+}
+
+function drawNet() {
+  const dpr = devicePixelRatio;
+  const W = canvas.width/dpr, H = canvas.height/dpr;
+  ctx.save(); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  const bg = ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#1a0a08'); bg.addColorStop(1,'#0f0604');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  const net = computeNetwork(inputs);
+  const highlightN = SCENES[currentScene].highlightNeuron;
+
+  // Layout
+  const colX = [W*0.18, W*0.5, W*0.82];
+  const inputY  = FEATURES.map((_,i) => {
+    const total = FEATURES.length;
+    return (H*0.15) + i * ((H*0.72)/(total-1));
+  });
+  const hiddenY = HIDDEN.map((_,i) => {
+    const total = HIDDEN.length;
+    return (H*0.2) + i * ((H*0.6)/(total-1));
+  });
+  const outY = H/2;
+
+  // ── Connections: Input → Hidden ──
+  FEATURES.forEach((f,i) => {
+    HIDDEN.forEach((h,j) => {
+      const w = h.weights[f.key]||0;
+      const act = net.inputVals[i];
+      const signal = act * Math.abs(w);
+      if (signal < 0.05) return;
+      const alpha = 0.05 + signal*0.5;
+      const isHl = (highlightN===j);
+      ctx.beginPath();
+      ctx.moveTo(colX[0]+22, inputY[i]);
+      ctx.lineTo(colX[1]-24, hiddenY[j]);
+      ctx.strokeStyle = w>0
+        ? `rgba(232,56,42,${isHl?alpha*1.5:alpha})`
+        : `rgba(90,180,212,${isHl?alpha*1.5:alpha})`;
+      ctx.lineWidth = isHl ? 1.5 + signal*3 : 0.5 + signal*2;
+      ctx.stroke();
+    });
+  });
+
+  // ── Connections: Hidden → Output ──
+  HIDDEN.forEach((_,j) => {
+    const w = OUTPUT_WEIGHTS[j];
+    const a = net.hiddenA[j];
+    if (a < 0.05) return;
+    const alpha = 0.1 + a*0.7;
+    ctx.beginPath();
+    ctx.moveTo(colX[1]+24, hiddenY[j]);
+    ctx.lineTo(colX[2]-24, outY);
+    ctx.strokeStyle = w>0
+      ? `rgba(232,56,42,${alpha})`
+      : `rgba(76,175,114,${alpha})`;
+    ctx.lineWidth = 0.8 + a*3;
+    ctx.stroke();
+  });
+
+  // ── Input Nodes ──
+  FEATURES.forEach((f,i) => {
+    const x = colX[0], y = inputY[i];
+    const on = (inputs[f.key]||0) > 0.5;
+    const R = 20;
+    // Glow
+    if (on) {
+      const g = ctx.createRadialGradient(x,y,0,x,y,34);
+      g.addColorStop(0,f.color.includes('red')||f.color.includes('ff6')
+        ?'rgba(232,56,42,0.25)':'rgba(240,168,48,0.2)');
+      g.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(x,y,34,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+    }
+    // Circle
+    ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
+    ctx.fillStyle = on ? `${f.color}33` : 'rgba(42,18,9,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = on ? f.color : 'var(--border)';
+    ctx.lineWidth = on ? 2 : 1;
+    ctx.stroke();
+    // Emoji
+    ctx.font = '14px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(f.emoji, x, y+5);
+    // Label
+    ctx.font = '9px Space Mono';
+    ctx.fillStyle = on ? getComputedColor(f.color) : '#4a2015';
+    ctx.textAlign = 'right';
+    ctx.fillText(f.label, x-26, y+4);
+  });
+
+  // ── Layer Labels ──
+  ctx.font = '700 8px Space Mono';
+  ctx.fillStyle = '#4a2015';
+  ctx.textAlign = 'center';
+  ctx.fillText('INPUT', colX[0], H*0.08);
+  ctx.fillText('HIDDEN LAYER', colX[1], H*0.08);
+  ctx.fillText('OUTPUT', colX[2], H*0.08);
+
+  // ── Hidden Nodes ──
+  HIDDEN.forEach((h,j) => {
+    const x = colX[1], y = hiddenY[j];
+    const a = net.hiddenA[j];
+    const isHl = (highlightN===j);
+    const R = 22;
+
+    // Glow
+    if (a > 0.1 || isHl) {
+      const glowR = R*2.5;
+      const g = ctx.createRadialGradient(x,y,0,x,y,glowR);
+      const col = j===2 ? '76,175,114' : '232,56,42';
+      g.addColorStop(0,`rgba(${col},${(isHl?0.3:0.1)+a*0.2})`);
+      g.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(x,y,glowR,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+    }
+
+    // Circle
+    ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
+    const nodeGrad = ctx.createRadialGradient(x-4,y-4,2,x,y,R);
+    const brightness = Math.floor(a*120);
+    if (j===2) {
+      nodeGrad.addColorStop(0,`rgb(${20+brightness/3},${40+brightness},${20+brightness/3})`);
+      nodeGrad.addColorStop(1,`rgb(10,${15+brightness/2},10)`);
+    } else {
+      nodeGrad.addColorStop(0,`rgb(${40+brightness},${15+brightness/4},${10+brightness/4})`);
+      nodeGrad.addColorStop(1,`rgb(${15+brightness/3},8,6)`);
+    }
+    ctx.fillStyle=nodeGrad; ctx.fill();
+    ctx.strokeStyle = isHl
+      ? (j===2 ? '#4caf72' : '#e8382a')
+      : (a>0.2 ? (j===2?'rgba(76,175,114,0.6)':'rgba(232,56,42,0.5)') : '#4a2015');
+    ctx.lineWidth = isHl ? 2 : 1;
+    ctx.stroke();
+
+    // Value
+    ctx.font = 'bold 9px Space Mono';
+    ctx.fillStyle = a>0.3 ? '#fff8f0' : '#7a5a4a';
+    ctx.textAlign = 'center';
+    ctx.fillText(a.toFixed(2), x, y+3.5);
+
+    // Label right
+    ctx.font = '9px Crimson Pro';
+    ctx.fillStyle = a>0.2 ? (j===2?'#4caf72':'#e8382a') : '#4a2015';
+    ctx.textAlign = 'left';
+    ctx.fillText(h.label, x+R+8, y+4);
+  });
+
+  // ── Output Node ──
+  const x = colX[2], y = outY;
+  const danger = net.outA;
+  const R = 28;
+
+  // Danger glow
+  const glowR = R*3;
+  const og = ctx.createRadialGradient(x,y,0,x,y,glowR);
+  og.addColorStop(0,`rgba(232,56,42,${danger*0.4})`);
+  og.addColorStop(0.5,`rgba(240,168,48,${danger*0.15})`);
+  og.addColorStop(1,'transparent');
+  ctx.beginPath(); ctx.arc(x,y,glowR,0,Math.PI*2);
+  ctx.fillStyle=og; ctx.fill();
+
+  // Circle
+  ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
+  const r2 = Math.floor(danger*232+20), g2 = Math.floor((1-danger)*160+20);
+  ctx.fillStyle=`rgb(${r2},${g2},20)`;
+  ctx.fill();
+  ctx.strokeStyle = danger>0.5 ? '#e8382a' : '#4caf72';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Emoji + value
+  ctx.font = '20px serif';
+  ctx.textAlign='center';
+  ctx.fillText(danger>0.65 ? '🐺' : danger>0.4 ? '⚠️' : '✅', x, y-4);
+  ctx.font='bold 10px Space Mono';
+  ctx.fillStyle='#fff8f0';
+  ctx.fillText(danger.toFixed(2), x, y+16);
+
+  // Danger label
+  ctx.font='700 9px Space Mono';
+  ctx.fillStyle = danger>0.5 ? '#e8382a' : '#4caf72';
+  ctx.fillText('GEFAHR', x, y+R+16);
+  ctx.font='400 8px Space Mono';
+  ctx.fillStyle='#7a5a4a';
+  ctx.fillText(danger>0.65?'HOCH':danger>0.4?'MITTEL':'GERING', x, y+R+28);
+
+  ctx.restore();
+}
+
+function getComputedColor(cssVar) {
+  const map = {
+    'var(--red)':'#e8382a','var(--green)':'#4caf72',
+    'var(--blue)':'#5ab4d4','var(--wolf)':'#8a9aaa',
+    'var(--gold)':'#f0a830','var(--purple)':'#9b6fd4'
+  };
+  return map[cssVar]||'#f0e8d8';
+}
+
+// ══════════════════════════════════════════════
+// UI
+// ══════════════════════════════════════════════
+function buildFeatureGrid() {
+  const grid = document.getElementById('featureGrid');
+  grid.innerHTML = FEATURES.map(f => {
+    const on = (inputs[f.key]||0)>0.5;
+    const col = getComputedColor(f.color);
+    return `<div class="feature-btn ${on?'on':''}"
+      style="${on?`border-color:${col};color:${col};background:${col}18`:''}"
+      onclick="toggleFeature('${f.key}')">
+      ${f.emoji} ${f.label}
+    </div>`;
+  }).join('');
+}
+
+function buildHiddenList() {
+  const net = computeNetwork(inputs);
+  const list = document.getElementById('hiddenList');
+  list.innerHTML = HIDDEN.map((h,j)=>{
+    const a = net.hiddenA[j];
+    const pct = Math.min(100, a*100);
+    const col = j===2 ? '#4caf72' : '#e8382a';
+    return `<div class="neuron-row">
+      <div class="neuron-label">${h.label}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="bar-val" style="color:${col}">${a.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+function buildDecision() {
+  const net = computeNetwork(inputs);
+  const d = net.outA;
+  const box = document.getElementById('decisionBox');
+  const label = document.getElementById('decisionLabel');
+  const sub = document.getElementById('decisionSub');
+
+  if (d > 0.65) {
+    box.style.borderColor='#e8382a'; box.style.background='rgba(232,56,42,0.08)';
+    label.style.color='#e8382a'; label.textContent='🐺 WOLF!';
+    sub.textContent = `Gefahr: ${(d*100).toFixed(0)}% -- Lauf weg!`;
+  } else if (d > 0.4) {
+    box.style.borderColor='#f0a830'; box.style.background='rgba(240,168,48,0.08)';
+    label.style.color='#f0a830'; label.textContent='⚠️ Vorsicht';
+    sub.textContent = `Unsicher: ${(d*100).toFixed(0)}% -- Aufpassen!`;
+  } else {
+    box.style.borderColor='#4caf72'; box.style.background='rgba(76,175,114,0.08)';
+    label.style.color='#4caf72'; label.textContent='✅ Sicher';
+    sub.textContent = `Gefahr: ${(d*100).toFixed(0)}% -- Alles gut!`;
+  }
+}
+
+function buildExplain(scene) {
+  document.getElementById('explainScroll').innerHTML = `
+    <div class="explain-card">${scene.explanation}</div>
+    <div class="explain-card">
+      <div class="card-title">Was passiert gerade?</div>
+      Die <span class="hi">6 Eingaben</span> (Merkmale der Situation) fließen durch<br>
+      <span class="blue">4 Hidden Neuronen</span>, die Muster erkennen:<br>
+      Gefahr, Täuschung, Vertrauen, Einsamkeit.<br><br>
+      Das Ergebnis: eine Zahl zwischen <span class="grn">0 (sicher)</span> und <span class="red">1 (Wolf!)</span>
+    </div>
+    <div class="explain-card">
+      <div class="card-title">Die Formel dahinter</div>
+      <span class="hi">Versteckte Schicht:</span><br>
+      hⱼ = ReLU(Σ wᵢⱼ · xᵢ + b)<br><br>
+      <span class="hi">Ausgabe:</span><br>
+      y = Sigmoid(Σ wⱼ · hⱼ)<br><br>
+      <span class="blue">Sigmoid</span> drückt alles auf 0–1.<br>
+      <span class="blue">ReLU</span> lässt nur positive Signale durch.
+    </div>`;
+}
+
+function buildDots() {
+  const dots = document.getElementById('sceneDots');
+  dots.innerHTML = SCENES.map((_,i)=>
+    `<div class="dot ${i===currentScene?'active':''}" onclick="goScene(${i})"></div>`
+  ).join('');
+}
+
+function updateStoryBox(scene) {
+  document.getElementById('storyScene').textContent = scene.name;
+  const txt = scene.text.replace(/<highlight>(.*?)<\/highlight>/g,
+    '<span class="highlight">$1</span>');
+  document.getElementById('storyText').innerHTML = txt;
+  document.getElementById('sceneIndicator').textContent =
+    `Szene ${currentScene+1} / ${SCENES.length}`;
+}
+
+function toggleFeature(key) {
+  inputs[key] = inputs[key]>0.5 ? 0 : 1;
+  manualOverride = true;
+  refresh();
+}
+
+function refresh() {
+  buildFeatureGrid();
+  buildHiddenList();
+  buildDecision();
+  drawNet();
+}
+
+function goScene(i) {
+  currentScene = i;
+  manualOverride = false;
+  const scene = SCENES[currentScene];
+  inputs = {...scene.features};
+  updateStoryBox(scene);
+  buildDots();
+  buildExplain(scene);
+  refresh();
+}
+
+function nextScene() { if(currentScene<SCENES.length-1) goScene(currentScene+1); }
+function prevScene() { if(currentScene>0) goScene(currentScene-1); }
+
+// ── Init ──
+window.addEventListener('resize', () => { resize(); });
+goScene(0);
+resize();
+</script>
+
+</body>
+</html>
