@@ -149,31 +149,27 @@ header .sub{
 #netCanvas{display:block;width:100%;height:100%;}
 
 /* Story overlay top */
-.story-box{
-  position:absolute;top:16px;left:50%;transform:translateX(-50%);
-  max-width:520px;width:90%;
-  background:rgba(255,255,255,0.96);
-  border:1px solid var(--border);
-  border-radius:6px;
-  padding:12px 18px;
-  backdrop-filter:blur(8px);
-  z-index:5;
+.story-bar{
+  flex-shrink:0;
+  padding:10px 24px;
+  background:rgba(245,237,224,0.98);
+  border-top:1px solid var(--border);
   text-align:center;
-  box-shadow:0 4px 20px var(--shadow);
+  border-right:1px solid var(--border);
 }
 .story-scene{
   font-family:'Playfair Display',serif;
-  font-size:11px;letter-spacing:3px;
+  font-size:10px;letter-spacing:3px;
   text-transform:uppercase;
   color:var(--muted);
-  margin-bottom:4px;
+  margin-bottom:3px;
 }
 .story-text{
   font-family:'Crimson Pro',serif;
-  font-size:15px;
+  font-size:14px;
   color:var(--text);
   font-style:italic;
-  line-height:1.5;
+  line-height:1.4;
 }
 .story-text .highlight{color:var(--red);font-style:normal;font-weight:600;}
 
@@ -308,10 +304,6 @@ header .sub{
   <div class="app">
     <div class="stage">
       <canvas id="netCanvas"></canvas>
-      <div class="story-box">
-        <div class="story-scene" id="storyScene">Prolog</div>
-        <div class="story-text" id="storyText">Lade Geschichte...</div>
-      </div>
     </div>
 
     <div class="panel">
@@ -334,11 +326,15 @@ header .sub{
     </div>
   </div>
 
-  <!-- Navigation AUSSERHALB .stage — immer sichtbar -->
+  <!-- Navigation + Story — ausserhalb .stage, immer sichtbar -->
   <div class="scene-nav">
     <button class="nav-btn" onclick="prevScene()">← Zurück</button>
     <div class="scene-dots" id="sceneDots"></div>
     <button class="nav-btn primary" onclick="nextScene()">Weiter →</button>
+  </div>
+  <div class="story-bar">
+    <div class="story-scene" id="storyScene">Prolog</div>
+    <div class="story-text" id="storyText">Lade Geschichte...</div>
   </div>
 </div>
 
