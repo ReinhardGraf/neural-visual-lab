@@ -32,7 +32,6 @@ body{
   overflow:hidden;
 }
 
-/* Warm paper texture */
 body::before{
   content:'';
   position:fixed;inset:0;
@@ -79,17 +78,72 @@ header .sub{
   padding:4px 12px;border-radius:2px;
 }
 
+/* ── NAV BAR — eigene Zeile unter dem Canvas-Bereich ── */
+.scene-nav{
+  display:flex;gap:8px;align-items:center;justify-content:center;
+  height:46px;
+  flex-shrink:0;
+  padding:0 16px;
+  background:rgba(253,248,242,0.97);
+  border-top:1px solid var(--border);
+  border-right:1px solid var(--border);
+  position:relative;z-index:10;
+}
+.nav-btn{
+  padding:7px 18px;
+  font-family:'Space Mono',monospace;
+  font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;
+  border-radius:3px;
+  cursor:pointer;
+  transition:all .15s;
+  border:1px solid var(--border2);
+  background:rgba(255,255,255,0.92);
+  color:var(--muted);
+  box-shadow:0 2px 8px var(--shadow);
+}
+.nav-btn:hover{border-color:var(--gold);color:var(--gold);}
+.nav-btn.primary{
+  background:rgba(192,57,43,0.07);
+  border-color:var(--red);color:var(--red);
+}
+.nav-btn.primary:hover{background:rgba(192,57,43,0.14);}
+
+.scene-dots{display:flex;gap:6px;align-items:center;}
+.dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--border);
+  cursor:pointer;transition:all .2s;
+  border:1px solid var(--border2);
+}
+.dot.active{
+  background:var(--red);
+  border-color:var(--red);
+  box-shadow:0 0 5px rgba(192,57,43,0.4);
+}
+
 /* ── LAYOUT ── */
+/* Outer wrapper stacks: [app-grid] + [nav-bar] */
+.outer{
+  display:flex;
+  flex-direction:column;
+  height:calc(100vh - 50px);
+  height:calc(100dvh - 50px);
+  position:relative;z-index:1;
+  overflow:hidden;
+}
 .app{
   display:grid;
   grid-template-columns:1fr 320px;
-  height:calc(100vh - 50px);
-  position:relative;z-index:1;
+  flex:1;
+  min-height:0;
+  overflow:hidden;
 }
 
 /* ── STAGE ── */
 .stage{
-  position:relative;overflow:visible;
+  position:relative;
+  overflow:hidden;
   border-right:1px solid var(--border);
 }
 #netCanvas{display:block;width:100%;height:100%;}
@@ -122,45 +176,6 @@ header .sub{
   line-height:1.5;
 }
 .story-text .highlight{color:var(--red);font-style:normal;font-weight:600;}
-
-/* Scene navigation */
-.scene-nav{
-  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
-  display:flex;gap:8px;align-items:center;
-  z-index:5;
-}
-.nav-btn{
-  padding:7px 18px;
-  font-family:'Space Mono',monospace;
-  font-size:9px;letter-spacing:2px;
-  text-transform:uppercase;
-  border-radius:3px;
-  cursor:pointer;
-  transition:all .15s;
-  border:1px solid var(--border2);
-  background:rgba(255,255,255,0.92);
-  color:var(--muted);
-  box-shadow:0 2px 8px var(--shadow);
-}
-.nav-btn:hover{border-color:var(--gold);color:var(--gold);}
-.nav-btn.primary{
-  background:rgba(192,57,43,0.07);
-  border-color:var(--red);color:var(--red);
-}
-.nav-btn.primary:hover{background:rgba(192,57,43,0.14);}
-
-.scene-dots{display:flex;gap:6px;}
-.dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--border);
-  cursor:pointer;transition:all .2s;
-  border:1px solid var(--border2);
-}
-.dot.active{
-  background:var(--red);
-  border-color:var(--red);
-  box-shadow:0 0 5px rgba(192,57,43,0.4);
-}
 
 /* ── RIGHT PANEL ── */
 .panel{
@@ -275,7 +290,6 @@ header .sub{
 .explain-card .grn{color:var(--green);}
 .explain-card .blue{color:var(--blue);}
 
-/* Scrollbar */
 .explain-scroll::-webkit-scrollbar{width:3px;}
 .explain-scroll::-webkit-scrollbar-track{background:var(--bg2);}
 .explain-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
@@ -290,49 +304,45 @@ header .sub{
   <div class="scene-indicator" id="sceneIndicator">Szene 1 / 6</div>
 </header>
 
-<div class="app">
-  <div class="stage">
-    <canvas id="netCanvas"></canvas>
-
-    <div class="story-box">
-      <div class="story-scene" id="storyScene">Prolog</div>
-      <div class="story-text" id="storyText">Lade Geschichte...</div>
-    </div>
-
-    <div class="scene-nav">
-      <button class="nav-btn" onclick="prevScene()">← Zurück</button>
-      <div class="scene-dots" id="sceneDots"></div>
-      <button class="nav-btn primary" onclick="nextScene()">Weiter →</button>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="p-section">
-      <div class="p-title">Eingabe — Was nimmt das Netz wahr?</div>
-      <div class="feature-grid" id="featureGrid"></div>
-    </div>
-
-    <div class="p-section">
-      <div class="p-title">Versteckte Schicht — Muster</div>
-      <div class="neuron-list" id="hiddenList"></div>
-    </div>
-
-    <div class="p-section">
-      <div class="p-title">Output — Entscheidung</div>
-      <div class="decision-box" id="decisionBox">
-        <div class="decision-label" id="decisionLabel">—</div>
-        <div class="decision-sub" id="decisionSub">Kein Signal</div>
+<div class="outer">
+  <div class="app">
+    <div class="stage">
+      <canvas id="netCanvas"></canvas>
+      <div class="story-box">
+        <div class="story-scene" id="storyScene">Prolog</div>
+        <div class="story-text" id="storyText">Lade Geschichte...</div>
       </div>
     </div>
 
-    <div class="explain-scroll" id="explainScroll"></div>
+    <div class="panel">
+      <div class="p-section">
+        <div class="p-title">Eingabe — Was nimmt das Netz wahr?</div>
+        <div class="feature-grid" id="featureGrid"></div>
+      </div>
+      <div class="p-section">
+        <div class="p-title">Versteckte Schicht — Muster</div>
+        <div class="neuron-list" id="hiddenList"></div>
+      </div>
+      <div class="p-section">
+        <div class="p-title">Output — Entscheidung</div>
+        <div class="decision-box" id="decisionBox">
+          <div class="decision-label" id="decisionLabel">—</div>
+          <div class="decision-sub" id="decisionSub">Kein Signal</div>
+        </div>
+      </div>
+      <div class="explain-scroll" id="explainScroll"></div>
+    </div>
+  </div>
+
+  <!-- Navigation AUSSERHALB .stage — immer sichtbar -->
+  <div class="scene-nav">
+    <button class="nav-btn" onclick="prevScene()">← Zurück</button>
+    <div class="scene-dots" id="sceneDots"></div>
+    <button class="nav-btn primary" onclick="nextScene()">Weiter →</button>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-// STORY SCENES
-// ══════════════════════════════════════════════
 const SCENES = [
   {
     name: 'Der Wald',
@@ -410,32 +420,26 @@ const HIDDEN = [
   {label:'😰 Allein-Muster',     weights:{gross_zaehne:0.4,freundlich:-0.1,bekannt:-0.3,allein:0.95,tierstimme:0.3,geschenke:-0.2}},
 ];
 
-const OUTPUT_WEIGHTS = [0.75, 0.65, -0.85, 0.45]; // hidden → output
+const OUTPUT_WEIGHTS = [0.75, 0.65, -0.85, 0.45];
 
 let currentScene = 0;
 let inputs = {};
 let manualOverride = false;
 
-// ── Math ──
 function relu(x){ return Math.max(0, x); }
 function sigmoid(x){ return 1/(1+Math.exp(-x)); }
 
 function computeNetwork(inp) {
   const inputVals = FEATURES.map(f => inp[f.key] || 0);
-  // Hidden
   const hiddenZ = HIDDEN.map(h =>
     FEATURES.reduce((s,f,i) => s + (h.weights[f.key]||0)*inputVals[i], 0)
   );
   const hiddenA = hiddenZ.map(relu);
-  // Output (danger score)
   const outZ = OUTPUT_WEIGHTS.reduce((s,w,i) => s + w*hiddenA[i], 0);
   const outA = sigmoid(outZ);
   return { inputVals, hiddenZ, hiddenA, outA };
 }
 
-// ══════════════════════════════════════════════
-// CANVAS
-// ══════════════════════════════════════════════
 const canvas = document.getElementById('netCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -454,11 +458,9 @@ function drawNet() {
   ctx.save(); ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
 
-  // Background — warm paper
   const bg = ctx.createLinearGradient(0,0,W,H);
   bg.addColorStop(0,'#fdf8f2'); bg.addColorStop(1,'#f5ede0');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
-  // Subtle grid
   ctx.strokeStyle='rgba(200,184,158,0.3)'; ctx.lineWidth=0.5;
   for(let gx=0;gx<W;gx+=40){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
   for(let gy=0;gy<H;gy+=40){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
@@ -466,19 +468,11 @@ function drawNet() {
   const net = computeNetwork(inputs);
   const highlightN = SCENES[currentScene].highlightNeuron;
 
-  // Layout
   const colX = [W*0.18, W*0.5, W*0.82];
-  const inputY  = FEATURES.map((_,i) => {
-    const total = FEATURES.length;
-    return (H*0.15) + i * ((H*0.72)/(total-1));
-  });
-  const hiddenY = HIDDEN.map((_,i) => {
-    const total = HIDDEN.length;
-    return (H*0.2) + i * ((H*0.6)/(total-1));
-  });
+  const inputY  = FEATURES.map((_,i) => (H*0.15) + i * ((H*0.72)/(FEATURES.length-1)));
+  const hiddenY = HIDDEN.map((_,i)  => (H*0.2)  + i * ((H*0.6)/(HIDDEN.length-1)));
   const outY = H/2;
 
-  // ── Connections: Input → Hidden ──
   FEATURES.forEach((f,i) => {
     HIDDEN.forEach((h,j) => {
       const w = h.weights[f.key]||0;
@@ -490,15 +484,12 @@ function drawNet() {
       ctx.beginPath();
       ctx.moveTo(colX[0]+22, inputY[i]);
       ctx.lineTo(colX[1]-24, hiddenY[j]);
-      ctx.strokeStyle = w>0
-        ? `rgba(232,56,42,${isHl?alpha*1.5:alpha})`
-        : `rgba(90,180,212,${isHl?alpha*1.5:alpha})`;
+      ctx.strokeStyle = w>0 ? `rgba(232,56,42,${isHl?alpha*1.5:alpha})` : `rgba(90,180,212,${isHl?alpha*1.5:alpha})`;
       ctx.lineWidth = isHl ? 1.5 + signal*3 : 0.5 + signal*2;
       ctx.stroke();
     });
   });
 
-  // ── Connections: Hidden → Output ──
   HIDDEN.forEach((_,j) => {
     const w = OUTPUT_WEIGHTS[j];
     const a = net.hiddenA[j];
@@ -507,46 +498,37 @@ function drawNet() {
     ctx.beginPath();
     ctx.moveTo(colX[1]+24, hiddenY[j]);
     ctx.lineTo(colX[2]-24, outY);
-    ctx.strokeStyle = w>0
-      ? `rgba(232,56,42,${alpha})`
-      : `rgba(76,175,114,${alpha})`;
+    ctx.strokeStyle = w>0 ? `rgba(232,56,42,${alpha})` : `rgba(76,175,114,${alpha})`;
     ctx.lineWidth = 0.8 + a*3;
     ctx.stroke();
   });
 
-  // ── Input Nodes ──
   FEATURES.forEach((f,i) => {
     const x = colX[0], y = inputY[i];
     const on = (inputs[f.key]||0) > 0.5;
     const R = 20;
-    // Glow
     if (on) {
       const g = ctx.createRadialGradient(x,y,0,x,y,34);
-      g.addColorStop(0,f.color.includes('red')||f.color.includes('ff6')
-        ?'rgba(232,56,42,0.25)':'rgba(240,168,48,0.2)');
+      g.addColorStop(0,'rgba(240,168,48,0.2)');
       g.addColorStop(1,'transparent');
       ctx.beginPath(); ctx.arc(x,y,34,0,Math.PI*2);
       ctx.fillStyle=g; ctx.fill();
     }
-    // Circle
     ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
     ctx.fillStyle = on ? `${f.color}22` : 'rgba(255,252,246,0.95)';
     ctx.fill();
     ctx.strokeStyle = on ? f.color : '#c8b89e';
     ctx.lineWidth = on ? 2 : 1;
     ctx.stroke();
-    // Emoji
     ctx.font = '14px serif';
     ctx.textAlign = 'center';
     ctx.fillText(f.emoji, x, y+5);
-    // Label
     ctx.font = '9px Space Mono';
     ctx.fillStyle = on ? getComputedColor(f.color) : '#8a7060';
     ctx.textAlign = 'right';
     ctx.fillText(f.label, x-26, y+4);
   });
 
-  // ── Layer Labels ──
   ctx.font = '700 8px Space Mono';
   ctx.fillStyle = '#8a7060';
   ctx.textAlign = 'center';
@@ -554,14 +536,11 @@ function drawNet() {
   ctx.fillText('HIDDEN LAYER', colX[1], H*0.08);
   ctx.fillText('OUTPUT', colX[2], H*0.08);
 
-  // ── Hidden Nodes ──
   HIDDEN.forEach((h,j) => {
     const x = colX[1], y = hiddenY[j];
     const a = net.hiddenA[j];
     const isHl = (highlightN===j);
     const R = 22;
-
-    // Glow
     if (a > 0.1 || isHl) {
       const glowR = R*2.5;
       const g = ctx.createRadialGradient(x,y,0,x,y,glowR);
@@ -571,8 +550,6 @@ function drawNet() {
       ctx.beginPath(); ctx.arc(x,y,glowR,0,Math.PI*2);
       ctx.fillStyle=g; ctx.fill();
     }
-
-    // Circle
     ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
     const nodeGrad = ctx.createRadialGradient(x-4,y-4,2,x,y,R);
     const brightness = Math.floor(a*100);
@@ -584,31 +561,22 @@ function drawNet() {
       nodeGrad.addColorStop(1,`rgb(${240-brightness/3},${215-brightness},${205-brightness})`);
     }
     ctx.fillStyle=nodeGrad; ctx.fill();
-    ctx.strokeStyle = isHl
-      ? (j===2 ? '#27855a' : '#c0392b')
-      : (a>0.2 ? (j===2?'rgba(39,133,90,0.7)':'rgba(192,57,43,0.6)') : '#c8b89e');
+    ctx.strokeStyle = isHl ? (j===2 ? '#27855a' : '#c0392b') : (a>0.2 ? (j===2?'rgba(39,133,90,0.7)':'rgba(192,57,43,0.6)') : '#c8b89e');
     ctx.lineWidth = isHl ? 2 : 1;
     ctx.stroke();
-
-    // Value
     ctx.font = 'bold 9px Space Mono';
     ctx.fillStyle = a>0.3 ? '#1a1008' : '#8a7060';
     ctx.textAlign = 'center';
     ctx.fillText(a.toFixed(2), x, y+3.5);
-
-    // Label right
     ctx.font = '9px Crimson Pro';
     ctx.fillStyle = a>0.2 ? (j===2?'#27855a':'#c0392b') : '#8a7060';
     ctx.textAlign = 'left';
     ctx.fillText(h.label, x+R+8, y+4);
   });
 
-  // ── Output Node ──
   const x = colX[2], y = outY;
   const danger = net.outA;
   const R = 28;
-
-  // Danger glow
   const glowR = R*3;
   const og = ctx.createRadialGradient(x,y,0,x,y,glowR);
   og.addColorStop(0,`rgba(232,56,42,${danger*0.4})`);
@@ -616,32 +584,22 @@ function drawNet() {
   og.addColorStop(1,'transparent');
   ctx.beginPath(); ctx.arc(x,y,glowR,0,Math.PI*2);
   ctx.fillStyle=og; ctx.fill();
-
-  // Circle
   ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2);
-  const r2 = Math.floor(255 - danger*40), g2 = Math.floor(245 - danger*140), b2 = Math.floor(240 - danger*160);
-  ctx.fillStyle=`rgb(${r2},${g2},${b2})`;
-  ctx.fill();
+  const r2=Math.floor(255-danger*40), g2=Math.floor(245-danger*140), b2=Math.floor(240-danger*160);
+  ctx.fillStyle=`rgb(${r2},${g2},${b2})`; ctx.fill();
   ctx.strokeStyle = danger>0.5 ? '#c0392b' : '#27855a';
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-
-  // Emoji + value
-  ctx.font = '20px serif';
-  ctx.textAlign='center';
+  ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.font = '20px serif'; ctx.textAlign='center';
   ctx.fillText(danger>0.65 ? '🐺' : danger>0.4 ? '⚠️' : '✅', x, y-4);
   ctx.font='bold 10px Space Mono';
   ctx.fillStyle = danger>0.5 ? '#7a0e05' : '#0e4a2a';
   ctx.fillText(danger.toFixed(2), x, y+16);
-
-  // Danger label
   ctx.font='700 9px Space Mono';
   ctx.fillStyle = danger>0.5 ? '#c0392b' : '#27855a';
   ctx.fillText('GEFAHR', x, y+R+16);
   ctx.font='400 8px Space Mono';
   ctx.fillStyle='#8a7060';
   ctx.fillText(danger>0.65?'HOCH':danger>0.4?'MITTEL':'GERING', x, y+R+28);
-
   ctx.restore();
 }
 
@@ -654,9 +612,6 @@ function getComputedColor(cssVar) {
   return map[cssVar]||'#2a1e14';
 }
 
-// ══════════════════════════════════════════════
-// UI
-// ══════════════════════════════════════════════
 function buildFeatureGrid() {
   const grid = document.getElementById('featureGrid');
   grid.innerHTML = FEATURES.map(f => {
@@ -691,7 +646,6 @@ function buildDecision() {
   const box = document.getElementById('decisionBox');
   const label = document.getElementById('decisionLabel');
   const sub = document.getElementById('decisionSub');
-
   if (d > 0.65) {
     box.style.borderColor='#e8382a'; box.style.background='rgba(232,56,42,0.08)';
     label.style.color='#e8382a'; label.textContent='🐺 WOLF!';
@@ -737,11 +691,9 @@ function buildDots() {
 
 function updateStoryBox(scene) {
   document.getElementById('storyScene').textContent = scene.name;
-  const txt = scene.text.replace(/<highlight>(.*?)<\/highlight>/g,
-    '<span class="highlight">$1</span>');
+  const txt = scene.text.replace(/<highlight>(.*?)<\/highlight>/g,'<span class="highlight">$1</span>');
   document.getElementById('storyText').innerHTML = txt;
-  document.getElementById('sceneIndicator').textContent =
-    `Szene ${currentScene+1} / ${SCENES.length}`;
+  document.getElementById('sceneIndicator').textContent = `Szene ${currentScene+1} / ${SCENES.length}`;
 }
 
 function toggleFeature(key) {
@@ -771,7 +723,6 @@ function goScene(i) {
 function nextScene() { if(currentScene<SCENES.length-1) goScene(currentScene+1); }
 function prevScene() { if(currentScene>0) goScene(currentScene-1); }
 
-// ── Init ──
 window.addEventListener('resize', () => { resize(); });
 goScene(0);
 resize();
