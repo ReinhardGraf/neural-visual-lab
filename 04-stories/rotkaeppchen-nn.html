@@ -352,7 +352,7 @@ Das Netz startet mit <span class="hi">zufälligen Gewichten</span>. Es weiß noc
   {
     name: 'Begegnung mit dem Wolf',
     text: 'Ein großes Tier mit <highlight>langen Zähnen</highlight> spricht Rotkäppchen an. Es klingt freundlich — aber etwas ist seltsam.',
-    features: { gross_zaehne: 1, freundlich: 1, bekannt: 0, allein: 1, tierstimme: 1, geschenke: 0 },
+    features: { gross_zaehne: 0.2, freundlich: 1, bekannt: 0.7, allein: 0.5, tierstimme: 0.1, geschenke: 0 },
     explanation: `<div class="card-title">Widersprüchliche Signale</div>
 Das Netz empfängt <span class="hi">gemischte Signale</span>: Freundliche Stimme <span class="grn">↑</span> aber große Zähne <span class="red">↑</span> und unbekannte Stimme <span class="red">↑</span>.<br><br>
 <span class="blue">Hidden Layer:</span> Das Muster "Freundlich + Gefährlich" aktiviert das Gefahren-Neuron <span class="red">stark</span>. Wölfe sind oft täuschend freundlich!`,
@@ -361,7 +361,7 @@ Das Netz empfängt <span class="hi">gemischte Signale</span>: Freundliche Stimme
   {
     name: 'Der Wolf fragt nach dem Weg',
     text: 'Der Wolf fragt nach der Großmutter. Er lächelt — aber seine <highlight>Tierstimme</highlight> verrät ihn. Rotkäppchen ist noch <highlight>allein</highlight>.',
-    features: { gross_zaehne: 1, freundlich: 1, bekannt: 0, allein: 1, tierstimme: 1, geschenke: 0 },
+    features: { gross_zaehne: 0.4, freundlich: 1, bekannt: 0.6, allein: 0.6, tierstimme: 0.3, geschenke: 0 },
     explanation: `<div class="card-title">Muster-Erkennung</div>
 Das Hidden-Neuron <span class="hi">"Täuschung"</span> feuert jetzt sehr stark — es hat gelernt: wenn jemand freundlich klingt, aber <span class="red">unbekannt + Tierstimme</span> kombiniert, ist das gefährlich.<br><br>
 <span class="blue">Forward Pass:</span> Input → Gewichte × Aktivierung → Summe → ReLU → Output`,
@@ -370,7 +370,7 @@ Das Hidden-Neuron <span class="hi">"Täuschung"</span> feuert jetzt sehr stark �
   {
     name: 'Bei der Großmutter — der Wolf im Bett',
     text: 'Rotkäppchen kommt an. Aber die Großmutter hat <highlight>was für große Zähne</highlight>! Und eine seltsame <highlight>tiefe Stimme</highlight>...',
-    features: { gross_zaehne: 1, freundlich: 1, bekannt: 1, allein: 1, tierstimme: 1, geschenke: 0 },
+    features: { gross_zaehne: 1, freundlich: 0.2, bekannt: 0.4, allein: 1, tierstimme: 1, geschenke: 0 },
     explanation: `<div class="card-title">Höchste Gefahr!</div>
 Alle Gefahren-Merkmale aktiv: <span class="red">Zähne ✓ Tierstimme ✓ Allein ✓</span><br><br>
 Aber auch: <span class="grn">Bekannt ✓ Freundlich ✓</span> — der Wolf tarnt sich!<br><br>
